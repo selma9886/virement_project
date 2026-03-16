@@ -1,0 +1,223 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8">
+  <title>BNM - Générateur XML</title>
+
+  <link rel="icon" type="image/png" href="{% static 'img/bnm_logo.png' %}">
+
+  <style>
+    :root {
+      --primary: #004aad;
+      --primary-hover: #003b8a;
+      --border: #d0d7de;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: "Segoe UI", Roboto, Arial, sans-serif;
+      background: linear-gradient(120deg, #f8fbff, #eef3ff);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      width: 500px;
+      padding: 30px 40px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+
+    header img {
+      height: 50px;
+      margin-right: 10px;
+    }
+
+    header h2 {
+      color: var(--primary);
+      font-size: 20px;
+      margin: 0;
+    }
+
+    .icon-btn {
+      text-decoration: none;
+      margin-left: 10px;
+      font-size: 18px;
+      color: var(--primary);
+    }
+
+    .flash {
+      padding: 10px;
+      border-radius: var(--radius);
+      margin-bottom: 12px;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .success {
+      background: #e8f8f1;
+      border-left: 4px solid #28a745;
+      color: #20633d;
+    }
+
+    .error {
+      background: #fdecea;
+      border-left: 4px solid #dc3545;
+      color: #a71d2a;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border-left: 4px solid #ff9800;
+      color: #7a5200;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin: 10px 0 5px;
+      color: #333;
+    }
+
+    select, input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-bottom: 15px;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: var(--radius);
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    .download-template {
+      display: block;
+      text-align: center;
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .info-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 12px;
+      margin: 15px 0;
+      border-radius: 5px;
+      font-size: 13px;
+      color: #0d47a1;
+      display: none;
+    }
+
+    .info-box.show {
+      display: block;
+    }
+  </style>
+
+  <script>
+    function handlePurposeChange() {
+      const purpose = document.getElementById('purpose').value;
+      const infoBox = document.getElementById('ccp-info');
+
+      if (purpose === 'CCP') {
+        infoBox.classList.add('show');
+      } else {
+        infoBox.classList.remove('show');
+      }
+    }
+  </script>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+
+<div style="display:flex;align-items:center;">
+<img src="{% static 'img/bnm_logo.png' %}" alt="BNM Logo">
+<h2>BNM - Générateur XML</h2>
+</div>
+
+<div>
+<a href="{% url 'change_password' %}" title="Changer mot de passe" class="icon-btn">🔒</a>
+<a href="{% url 'logout' %}" title="Déconnexion" class="icon-btn">🚪</a>
+</div>
+
+</header>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="flash {{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="POST" action="{% url 'upload' %}" enctype="multipart/form-data">
+
+{% csrf_token %}
+
+<label for="purpose">Type de virement :</label>
+
+<select name="purpose" id="purpose" required onchange="handlePurposeChange()">
+<option value="">-- Sélectionnez --</option>
+<option value="SALA">Salaire</option>
+<option value="GOVT">Gouvernement</option>
+<option value="OTHR">Autre</option>
+<option value="CCP">CCP (Compte Chèques Postaux)</option>
+</select>
+
+<div id="ccp-info" class="info-box">
+<strong>ℹ️ Mode CCP:</strong>
+Tous les virements seront envoyés au compte CCP centralisé
+(00001000010000300110718).
+Les informations du bénéficiaire et son RIB seront inclus dans le motif.
+</div>
+
+<label for="file">Fichier Excel :</label>
+
+<input type="file" name="file" id="file" accept=".xls,.xlsx" required>
+
+<button type="submit">
+Générer le fichier XML
+</button>
+
+</form>
+
+<a href="{% url 'download_template' %}" class="download-template">
+⬇️ Télécharger le modèle Excel
+</a>
+
+</div>
+
+</body>
+</html>

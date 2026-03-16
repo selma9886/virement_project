@@ -1,0 +1,18 @@
+<?xml version="1.0" ?>
+<Document>
+	<Transaction>
+		<Nom>BETAH LAB </Nom>
+		<RIB>00018001002100654740197</RIB>
+		<Montant>156230.89</Montant>
+	</Transaction>
+	<Transaction>
+		<Nom>EL HEDRAMI BOULERYAH</Nom>
+		<RIB>00024000041000000348722</RIB>
+		<Montant>30000.23</Montant>
+	</Transaction>
+	<Transaction>
+		<Nom>ABASS MOUSTAPHA</Nom>
+		<RIB>00021000010101054002633</RIB>
+		<Montant>156230.89</Montant>
+	</Transaction>
+</Document>

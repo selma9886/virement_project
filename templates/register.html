@@ -1,0 +1,123 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>BNM - Inscription</title>
+
+<link rel="icon" type="image/png" href="{% static 'img/bnm_logo.png' %}">
+
+<style>
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(135deg, #e6f0ff, #f9fbff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  margin: 0;
+}
+
+.card {
+  background: white;
+  padding: 40px;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  width: 380px;
+  text-align: center;
+}
+
+.card img {
+  height: 70px;
+  margin-bottom: 15px;
+}
+
+h2 {
+  color: #004aad;
+  margin-bottom: 25px;
+}
+
+label {
+  display: block;
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+input {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background: #004aad;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #003b8a;
+}
+
+.flash {
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  background: #fdecea;
+  color: #a71d2a;
+}
+
+footer {
+  margin-top: 15px;
+  font-size: 12px;
+  color: #777;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+
+<img src="{% static 'img/bnm_logo.png' %}" alt="BNM Logo">
+
+<h2>BNM - Inscription</h2>
+
+{% if messages %}
+  {% for message in messages %}
+    <div class="flash">{{ message }}</div>
+  {% endfor %}
+{% endif %}
+
+<form method="POST">
+{% csrf_token %}
+
+<label>Nom</label>
+<input type="text" name="first_name" required>
+
+<label>Email</label>
+<input type="email" name="email" required>
+
+<label>Mot de passe</label>
+<input type="password" name="password1" required>
+
+<label>Confirmer mot de passe</label>
+<input type="password" name="password2" required>
+
+<button type="submit">Créer un compte</button>
+
+</form>
+
+<footer>© 2025 Banque Nationale de Mauritanie</footer>
+
+</div>
+
+</body>
+</html>

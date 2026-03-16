@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Confirmation des corrections RIB</title>
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
+background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+min-height:100vh;
+padding:20px;
+display:flex;
+justify-content:center;
+align-items:center;
+}
+
+.container{
+background:white;
+border-radius:15px;
+box-shadow:0 10px 40px rgba(0,0,0,0.2);
+padding:40px;
+max-width:1000px;
+width:100%;
+}
+
+h1{
+color:#ff6b6b;
+margin-bottom:10px;
+font-size:28px;
+text-align:center;
+}
+
+.warning-box{
+background:#fff3cd;
+border-left:4px solid #ffc107;
+padding:15px;
+margin:20px 0;
+border-radius:5px;
+}
+
+.warning-box p{
+color:#856404;
+line-height:1.6;
+}
+
+.corrections-table{
+width:100%;
+border-collapse:collapse;
+margin:30px 0;
+font-size:14px;
+}
+
+.corrections-table th{
+background:#667eea;
+color:white;
+padding:12px;
+text-align:left;
+font-weight:600;
+}
+
+.corrections-table td{
+padding:12px;
+border-bottom:1px solid #e0e0e0;
+}
+
+.corrections-table tr:hover{
+background:#f5f5f5;
+}
+
+.rib-original{
+color:#d32f2f;
+font-weight:bold;
+font-family:monospace;
+}
+
+.rib-corrected{
+color:#388e3c;
+font-weight:bold;
+font-family:monospace;
+}
+
+.key-badge{
+display:inline-block;
+padding:2px 8px;
+border-radius:3px;
+font-size:11px;
+font-weight:bold;
+}
+
+.key-wrong{
+background:#ffcdd2;
+color:#c62828;
+}
+
+.key-correct{
+background:#c8e6c9;
+color:#2e7d32;
+}
+
+.button-group{
+display:flex;
+gap:15px;
+justify-content:center;
+margin-top:30px;
+}
+
+button{
+padding:15px 40px;
+border:none;
+border-radius:8px;
+font-size:16px;
+font-weight:600;
+cursor:pointer;
+}
+
+.btn-confirm{
+background:#4caf50;
+color:white;
+}
+
+.btn-confirm:hover{
+background:#45a049;
+}
+
+.btn-cancel{
+background:#f44336;
+color:white;
+}
+
+.btn-cancel:hover{
+background:#da190b;
+}
+
+.count-badge{
+background:#ff6b6b;
+color:white;
+padding:5px 15px;
+border-radius:20px;
+font-size:14px;
+display:inline-block;
+margin-bottom:20px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>⚠️ RIBs invalides détectés</h1>
+
+<div class="warning-box">
+
+<p>
+<strong>Attention :</strong>
+Votre fichier contient des RIBs avec des clés invalides.
+Nous avons calculé les clés correctes pour vous.
+</p>
+
+<p style="margin-top:10px;">
+Voulez-vous continuer avec les RIBs corrigés automatiquement ?
+</p>
+
+</div>
+
+<div style="text-align:center;">
+
+<span class="count-badge">
+{{ corrections|length }} RIB(s) à corriger
+</span>
+
+</div>
+
+<table class="corrections-table">
+
+<thead>
+<tr>
+<th>Ligne</th>
+<th>Type</th>
+<th>Nom</th>
+<th>RIB Original</th>
+<th>Clé</th>
+<th>RIB Corrigé</th>
+<th>Clé</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for correction in corrections %}
+
+<tr>
+
+<td><strong>{{ correction.line }}</strong></td>
+
+<td>{{ correction.type }}</td>
+
+<td>{{ correction.name }}</td>
+
+<td class="rib-original">{{ correction.original }}</td>
+
+<td>
+<span class="key-badge key-wrong">
+{{ correction.original_key }}
+</span>
+</td>
+
+<td class="rib-corrected">{{ correction.corrected }}</td>
+
+<td>
+<span class="key-badge key-correct">
+{{ correction.correct_key }}
+</span>
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+<form method="POST" action="{% url 'process_corrections' %}">
+
+{% csrf_token %}
+
+<div class="button-group">
+
+<button type="submit" name="choice" value="yes" class="btn-confirm">
+✓ Oui, corriger et générer le XML
+</button>
+
+<button type="submit" name="choice" value="no" class="btn-cancel">
+✗ Non, annuler
+</button>
+
+</div>
+
+</form>
+
+</div>
+
+</body>
+
+</html>
