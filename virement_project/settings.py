@@ -17,12 +17,33 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# URL de connexion personnalisée
+# URL de connexion pour @login_required
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-1tkm9$2+1m%1hd=sa2m*)(7hf@ntjs^)l#9dd%(m+xrftck1@!'
+
+# settings.py
+
+# Pour BNM (si c'est un serveur Exchange/Outlook)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+# OU
+# EMAIL_HOST = 'smtp-mail.outlook.com'  # Alternative
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'selmayacoube@gmail.com'
+EMAIL_HOST_PASSWORD = 'qxgwqfpppaixcsrx'
+DEFAULT_FROM_EMAIL = 'selmayacoube@gmail.com'
+
+# Pour tester en développement (affiche les emails dans la console)
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

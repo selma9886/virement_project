@@ -1,0 +1,145 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BNM - {% if user.is_authenticated %}Administration{% else %}Accueil{% endif %}</title>
+    <link rel="icon" type="image/png" href="{% static 'img/bnm_logo.png' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+                   <div class="sidebar-header">
+                <img src="{% static 'img/bnm_logo.png' %}" alt="Logo" class="sidebar-logo">
+                {% if user.is_authenticated %}
+                    {% if user.is_superuser or user.userprofile.role == 'admin' %}
+                        <h3>BNM Admin</h3>
+                        <p>Panel d'administration</p>
+                    {% else %}
+                        <h3>BNM Utilisateurs</h3>
+                        <p>Espace utilisateur</p>
+                    {% endif %}
+                {% else %}
+                    <h3>BNM</h3>
+                    <p>Bienvenue</p>
+                {% endif %}
+            </div>
+            <nav class="sidebar-nav">
+    {% if user.is_authenticated %}
+        <!-- Vérifier si l'utilisateur est administrateur -->
+        {% if user.is_superuser or user.userprofile.role == 'admin' %}
+            <!-- Menus pour administrateur - afficher tous les menus -->
+            <a href="{% url 'admin_dashboard' %}" class="nav-item {% if active_tab == 'dashboard' %}active{% endif %}">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Tableau de bord</span>
+            </a>
+
+            <a href="{% url 'index' %}" class="nav-item" data-tab="">
+                <i class="fas fa-code"></i>
+                <span>Générer XML</span>
+            </a>
+            
+            <a href="{% url 'generated-files' %}" class="nav-item" data-tab="">
+                <i class="fas fa-folder-open"></i>
+                <span>Tous les fichiers</span>
+            </a>
+            
+            <a href="{% url 'manage_users' %}" class="nav-item" data-tab="">
+                <i class="fas fa-users"></i>
+                <span>Utilisateurs</span>
+            </a>
+            
+            <a href="{% url 'my_generated_files' %}" class="nav-item" data-tab="">
+                <i class="fas fa-file-alt"></i>
+                <span>Mes fichiers</span>
+            </a>
+            
+            <a href="{% url 'email_history' %}" class="nav-item" data-tab="">
+                <i class="fas fa-history"></i>
+                <span>Historique emails</span>
+            </a>
+            
+        {% elif user.userprofile.role == 'comptable' %}
+        
+            <!-- Le comptable voit "Tous les fichiers" mais avec accès limité -->
+            <a href="{% url 'generated-files' %}" class="nav-item" data-tab="">
+                <i class="fas fa-folder-open"></i>
+                <span>les fichiers</span>
+              
+            </a>
+            
+        {% else %}
+            <!-- Menus pour utilisateur normal -->
+            <a href="{% url 'index' %}" class="nav-item" data-tab="">
+                <i class="fas fa-code"></i>
+                <span>Générer XML</span>
+            </a>
+            
+            <a href="{% url 'my_generated_files' %}" class="nav-item" data-tab="">
+                <i class="fas fa-file-alt"></i>
+                <span>Mes fichiers</span>
+            </a>
+            
+            {% if user.userprofile.can_view_files %}
+            <a href="{% url 'generated-files' %}" class="nav-item" data-tab="">
+                <i class="fas fa-folder-open"></i>
+                <span>Tous les fichiers</span>
+            </a>
+            {% endif %}
+        {% endif %}
+    {% else %}
+        <!-- Utilisateur non connecté - afficher uniquement l'accueil -->
+        <a href="{% url 'index' %}" class="nav-item" data-tab="">
+            <i class="fas fa-code"></i>
+            <span>Générer XML</span>
+        </a>
+    {% endif %}
+</nav>
+            <div class="sidebar-footer">
+                {% if user.is_authenticated %}
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <div class="user-info-details">
+                            <span class="user-name">{{ user.first_name|default:user.username }}</span>
+                            <span class="user-email">{{ user.email }}</span>
+                            {% if user.is_superuser or user.userprofile.role == 'admin' %}
+                                <span class="badge badge-admin">Administrateur</span>
+                            {% else %}
+                                <span class="badge badge-user">Utilisateur</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <a href="{% url 'logout' %}" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Déconnexion
+                    </a>
+                {% else %}
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <div class="user-info-details">
+                            <span class="user-name">Invité</span>
+                            <span class="user-email">Non connecté</span>
+                        </div>
+                    </div>
+                    <a href="{% url 'login' %}" class="btn-login">
+                        <i class="fas fa-sign-in-alt"></i> Connexion
+                    </a>
+                {% endif %}
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{% static 'js/utils.js' %}"></script>
+    <script src="{% static 'js/admin.js' %}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

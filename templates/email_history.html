@@ -1,0 +1,797 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Styles spécifiques à la page d'historique des emails */
+    .history-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .history-header h1 {
+        margin: 0;
+        color: #333;
+        font-size: 24px;
+    }
+    
+    .btn-back {
+        background: #667eea;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.3s;
+    }
+    
+    .btn-back:hover {
+        background: #5a67d8;
+        color: white;
+    }
+    
+    /* Barre de recherche */
+    .search-bar-container {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin: 0 20px 20px 20px;
+        padding: 15px 20px;
+    }
+    
+    .search-input-group {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+    
+    .search-input-group input {
+        flex: 1;
+        padding: 10px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+    
+    .search-input-group input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .search-input-group button {
+        padding: 10px 20px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: background 0.3s;
+    }
+    
+    .search-input-group button:hover {
+        background: #5a67d8;
+    }
+    
+    .btn-reset {
+        background: #6c757d !important;
+    }
+    
+    .btn-reset:hover {
+        background: #5a6268 !important;
+    }
+    
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+        padding: 0 20px;
+    }
+    
+    .stat-card-small {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        text-align: center;
+        transition: transform 0.3s;
+    }
+    
+    .stat-card-small:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-card-small i {
+        font-size: 32px;
+        color: #667eea;
+        margin-bottom: 10px;
+    }
+    
+    .stat-card-small h3 {
+        font-size: 28px;
+        margin: 10px 0;
+        color: #333;
+    }
+    
+    .stat-card-small p {
+        color: #666;
+        margin: 0;
+    }
+    
+    .result-counter {
+        margin: 10px 20px;
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        font-size: 14px;
+        color: #666;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .result-counter i {
+        color: #667eea;
+        margin-right: 5px;
+    }
+    
+    .items-per-page {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .items-per-page select {
+        padding: 6px 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    
+    .history-table-container {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow-x: auto;
+        margin: 0 20px;
+    }
+    
+    .history-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .history-table th {
+        background: #f8f9fa;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .history-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e0e0e0;
+        vertical-align: middle;
+    }
+    
+    .history-table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background: #4caf50;
+        color: white;
+    }
+    
+    .badge-danger {
+        background: #f44336;
+        color: white;
+    }
+    
+    .badge-warning {
+        background: #ff9800;
+        color: white;
+    }
+    
+    .empty-message {
+        text-align: center;
+        padding: 60px 20px;
+        color: #666;
+        font-size: 16px;
+    }
+    
+    .empty-message i {
+        font-size: 48px;
+        margin-bottom: 20px;
+        color: #ccc;
+    }
+    
+    .no-result-message {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+    
+    .error-message {
+        font-size: 11px;
+        color: #f44336;
+        display: block;
+        margin-top: 5px;
+    }
+    
+    .file-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .file-link:hover {
+        text-decoration: underline;
+    }
+    
+    /* Styles pour la pagination */
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 30px 20px;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .pagination {
+        display: flex;
+        gap: 5px;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .pagination li {
+        display: inline-block;
+    }
+    
+    .pagination a, .pagination span {
+        display: inline-block;
+        padding: 8px 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        text-decoration: none;
+        color: #667eea;
+        transition: all 0.3s;
+        font-size: 14px;
+    }
+    
+    .pagination a:hover {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .pagination .active span {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    
+    .pagination .disabled span {
+        color: #ccc;
+        cursor: not-allowed;
+    }
+    
+    .page-info {
+        font-size: 14px;
+        color: #666;
+        background: #f8f9fa;
+        padding: 8px 15px;
+        border-radius: 5px;
+    }
+    
+    @media (max-width: 768px) {
+        .history-table th,
+        .history-table td {
+            padding: 8px 10px;
+            font-size: 12px;
+        }
+        
+        .search-input-group {
+            flex-direction: column;
+        }
+        
+        .search-input-group button {
+            width: 100%;
+        }
+        
+        .stats-summary {
+            grid-template-columns: 1fr;
+        }
+        
+        .pagination-container {
+            flex-direction: column;
+        }
+        
+        .pagination a, .pagination span {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+        
+        .result-counter {
+            flex-direction: column;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="history-header">
+    <h1>
+        <i class="fas fa-history"></i> Historique des emails envoyés
+    </h1>
+    <a href="{% url 'admin_dashboard' %}" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Retour au Dashboard
+    </a>
+</div>
+
+<!-- Barre de recherche -->
+<div class="search-bar-container">
+    <div class="search-input-group">
+        <input type="text" id="searchInput" placeholder="🔍 Rechercher par destinataire, expéditeur, sujet, fichier ou statut..." autocomplete="off">
+        <button id="searchBtn">
+            <i class="fas fa-search"></i> Rechercher
+        </button>
+        <button id="resetSearchBtn" class="btn-reset">
+            <i class="fas fa-undo"></i> Réinitialiser
+        </button>
+    </div>
+</div>
+
+{% if emails %}
+<div class="stats-summary">
+    <div class="stat-card-small">
+        <i class="fas fa-envelope"></i>
+        <h3 id="totalEmailsCount">{{ emails|length }}</h3>
+        <p>Total emails</p>
+    </div>
+    <div class="stat-card-small">
+        <i class="fas fa-check-circle"></i>
+        <h3 id="sentCount">0</h3>
+        <p>Emails envoyés</p>
+    </div>
+    <div class="stat-card-small">
+        <i class="fas fa-times-circle"></i>
+        <h3 id="failedCount">0</h3>
+        <p>Emails échoués</p>
+    </div>
+    <div class="stat-card-small">
+        <i class="fas fa-calendar"></i>
+        <h3 id="lastEmailDate">
+            {% if emails %}
+                {{ emails.0.sent_at|date:"d/m/Y"|default:"-" }}
+            {% else %}
+                -
+            {% endif %}
+        </h3>
+        <p>Dernier email</p>
+    </div>
+</div>
+
+<!-- Compteur de résultats et sélection du nombre d'éléments -->
+<div class="result-counter">
+    <div>
+        <i class="fas fa-chart-line"></i> 
+        <span id="resultCount">{{ emails|length }}</span> résultat(s) trouvé(s)
+    </div>
+    <div class="items-per-page">
+        <label><i class="fas fa-list"></i> Afficher :</label>
+        <select id="itemsPerPage">
+            <option value="5">5 par page</option>
+            <option value="10" selected>10 par page</option>
+            <option value="20">20 par page</option>
+            <option value="50">50 par page</option>
+            <option value="all">Tous</option>
+        </select>
+    </div>
+</div>
+
+<div class="history-table-container">
+    <table class="history-table">
+        <thead>
+            <tr>
+                <th><i class="fas fa-calendar"></i> Date</th>
+                <th><i class="fas fa-user"></i> De</th>
+                <th><i class="fas fa-envelope"></i> À</th>
+                <th><i class="fas fa-tag"></i> Objet</th>
+                <th><i class="fas fa-file"></i> Fichier</th>
+                <th><i class="fas fa-chart-line"></i> Statut</th>
+            </thead>
+        <tbody id="historyTableBody">
+        {% for email in emails %}
+        <tr class="email-row" 
+            data-date="{{ email.sent_at|date:"d/m/Y H:i"|lower }}" 
+            data-from="{{ email.from_email|lower }}" 
+            data-to="{{ email.to_email|lower }}" 
+            data-subject="{{ email.subject|lower }}"
+            data-filename="{% if email.generated_xml %}{{ email.generated_xml.file_name|lower }}{% endif %}"
+            data-status="{{ email.status|lower }}">
+            <td>{{ email.sent_at|date:"d/m/Y H:i" }}</td>
+            <td>{{ email.from_email }}</td>
+            <td>{{ email.to_email }}</td>
+            <td title="{{ email.subject }}">
+                <strong>{{ email.subject|truncatechars:50 }}</strong>
+                {% if email.subject|length > 50 %}
+                    <br><small style="color: #666;">{{ email.subject|truncatechars:100 }}</small>
+                {% endif %}
+            </td>
+            <td>
+                {% if email.generated_xml %}
+                    <a href="{% url 'serve_file' email.generated_xml.file_name %}" class="file-link" title="Télécharger le fichier">
+                        <i class="fas fa-file-alt"></i> {{ email.generated_xml.file_name|truncatechars:30 }}
+                    </a>
+                {% else %}
+                    <span style="color: #999;">-</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if email.status == 'sent' %}
+                    <span class="badge badge-success">
+                        <i class="fas fa-check-circle"></i> Envoyé
+                    </span>
+                {% else %}
+                    <span class="badge badge-danger">
+                        <i class="fas fa-exclamation-circle"></i> Échec
+                    </span>
+                    {% if email.error_message %}
+                        <div class="error-message" title="{{ email.error_message }}">
+                            <i class="fas fa-info-circle"></i> {{ email.error_message|truncatechars:40 }}
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+<div class="pagination-container">
+    <div class="page-info">
+        <i class="fas fa-info-circle"></i> 
+        Page <span id="currentPage">1</span> sur <span id="totalPages">1</span>
+    </div>
+    <ul class="pagination" id="pagination">
+        <!-- La pagination sera générée par JavaScript -->
+    </ul>
+</div>
+{% else %}
+<div class="empty-message">
+    <i class="fas fa-inbox"></i>
+    <p>Aucun email envoyé pour l'instant.</p>
+    <small>Les emails apparaîtront ici après leur envoi.</small>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Variables pour la pagination
+    let allRows = [];
+    let currentPage = 1;
+    let itemsPerPage = 10;
+    let filteredRows = [];
+    
+    // Collecter toutes les lignes
+    function collectRows() {
+        allRows = Array.from(document.querySelectorAll('.email-row'));
+        updateFilteredRows();
+    }
+    
+    // Mettre à jour les lignes filtrées
+    function updateFilteredRows() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        filteredRows = allRows.filter(row => {
+            const date = row.getAttribute('data-date') || '';
+            const from = row.getAttribute('data-from') || '';
+            const to = row.getAttribute('data-to') || '';
+            const subject = row.getAttribute('data-subject') || '';
+            const filename = row.getAttribute('data-filename') || '';
+            const status = row.getAttribute('data-status') || '';
+            
+            return searchTerm === '' || 
+                date.includes(searchTerm) || 
+                from.includes(searchTerm) || 
+                to.includes(searchTerm) || 
+                subject.includes(searchTerm) ||
+                filename.includes(searchTerm) ||
+                status.includes(searchTerm);
+        });
+        
+        updateResultCount();
+        renderCurrentPage();
+        updatePagination();
+        calculateStats();
+    }
+    
+    // Mettre à jour le compteur de résultats
+    function updateResultCount() {
+        const resultCountSpan = document.getElementById('resultCount');
+        const totalEmailsSpan = document.getElementById('totalEmailsCount');
+        
+        if (resultCountSpan) {
+            resultCountSpan.innerText = filteredRows.length;
+        }
+        if (totalEmailsSpan) {
+            totalEmailsSpan.innerText = filteredRows.length;
+        }
+        
+        // Afficher ou masquer le message "aucun résultat"
+        const tbody = document.getElementById('historyTableBody');
+        let noResultMsg = document.getElementById('noResultMessage');
+        
+        if (filteredRows.length === 0 && allRows.length > 0) {
+            if (!noResultMsg) {
+                const msg = document.createElement('tr');
+                msg.id = 'noResultMessage';
+                msg.className = 'no-result-message';
+                msg.innerHTML = '<td colspan="6" style="text-align: center; padding: 40px;">' +
+                    '<i class="fas fa-search" style="font-size: 48px; color: #ccc; margin-bottom: 15px; display: block;"></i>' +
+                    'Aucun email trouvé pour cette recherche.<br>' +
+                    '<small>Essayez avec d\'autres mots-clés.</small>' +
+                    '</td>';
+                tbody.appendChild(msg);
+            }
+        } else if (noResultMsg) {
+            noResultMsg.remove();
+        }
+    }
+    
+    // Afficher la page courante
+    function renderCurrentPage() {
+        const tbody = document.getElementById('historyTableBody');
+        const start = (currentPage - 1) * itemsPerPage;
+        const end = itemsPerPage === 'all' ? filteredRows.length : start + itemsPerPage;
+        const rowsToShow = filteredRows.slice(start, end);
+        
+        // Cacher toutes les lignes
+        allRows.forEach(row => row.style.display = 'none');
+        
+        // Afficher les lignes de la page courante
+        rowsToShow.forEach(row => row.style.display = '');
+        
+        // Mettre à jour les statistiques affichées
+        updateDisplayedStats(rowsToShow);
+    }
+    
+    // Mettre à jour les statistiques pour les lignes affichées
+    function updateDisplayedStats(displayedRows) {
+        let sent = 0;
+        let failed = 0;
+        
+        displayedRows.forEach(row => {
+            const status = row.getAttribute('data-status');
+            if (status === 'sent') sent++;
+            if (status === 'failed') failed++;
+        });
+        
+        document.getElementById('sentCount').innerText = sent;
+        document.getElementById('failedCount').innerText = failed;
+    }
+    
+    // Calculer les statistiques complètes
+    function calculateStats() {
+        let total = allRows.length;
+        let sent = 0;
+        let failed = 0;
+        let lastDate = '';
+        
+        allRows.forEach(row => {
+            const status = row.getAttribute('data-status');
+            const date = row.getAttribute('data-date');
+            
+            if (status === 'sent') sent++;
+            if (status === 'failed') failed++;
+            
+            if (!lastDate && date) {
+                lastDate = date.split(' ')[0];
+            }
+        });
+        
+        document.getElementById('totalEmailsCount').innerText = total;
+        if (lastDate) {
+            document.getElementById('lastEmailDate').innerText = lastDate;
+        }
+    }
+    
+    // Mettre à jour la pagination
+    function updatePagination() {
+        const totalItems = filteredRows.length;
+        let totalPages;
+        
+        if (itemsPerPage === 'all') {
+            totalPages = 1;
+        } else {
+            totalPages = Math.ceil(totalItems / itemsPerPage);
+        }
+        
+        if (totalPages === 0) totalPages = 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+        
+        document.getElementById('currentPage').innerText = currentPage;
+        document.getElementById('totalPages').innerText = totalPages;
+        
+        // Générer les liens de pagination
+        const paginationUl = document.getElementById('pagination');
+        paginationUl.innerHTML = '';
+        
+        // Bouton Précédent
+        const prevLi = document.createElement('li');
+        if (currentPage === 1) {
+            prevLi.className = 'disabled';
+            prevLi.innerHTML = '<span><i class="fas fa-chevron-left"></i> Précédent</span>';
+        } else {
+            prevLi.innerHTML = '<a href="#" onclick="goToPage(' + (currentPage - 1) + '); return false;"><i class="fas fa-chevron-left"></i> Précédent</a>';
+        }
+        paginationUl.appendChild(prevLi);
+        
+        // Pages
+        let startPage = Math.max(1, currentPage - 2);
+        let endPage = Math.min(totalPages, currentPage + 2);
+        
+        if (startPage > 1) {
+            const firstLi = document.createElement('li');
+            firstLi.innerHTML = '<a href="#" onclick="goToPage(1); return false;">1</a>';
+            paginationUl.appendChild(firstLi);
+            
+            if (startPage > 2) {
+                const dotsLi = document.createElement('li');
+                dotsLi.className = 'disabled';
+                dotsLi.innerHTML = '<span>...</span>';
+                paginationUl.appendChild(dotsLi);
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            const li = document.createElement('li');
+            if (i === currentPage) {
+                li.className = 'active';
+                li.innerHTML = '<span>' + i + '</span>';
+            } else {
+                li.innerHTML = '<a href="#" onclick="goToPage(' + i + '); return false;">' + i + '</a>';
+            }
+            paginationUl.appendChild(li);
+        }
+        
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                const dotsLi = document.createElement('li');
+                dotsLi.className = 'disabled';
+                dotsLi.innerHTML = '<span>...</span>';
+                paginationUl.appendChild(dotsLi);
+            }
+            
+            const lastLi = document.createElement('li');
+            lastLi.innerHTML = '<a href="#" onclick="goToPage(' + totalPages + '); return false;">' + totalPages + '</a>';
+            paginationUl.appendChild(lastLi);
+        }
+        
+        // Bouton Suivant
+        const nextLi = document.createElement('li');
+        if (currentPage === totalPages) {
+            nextLi.className = 'disabled';
+            nextLi.innerHTML = '<span>Suivant <i class="fas fa-chevron-right"></i></span>';
+        } else {
+            nextLi.innerHTML = '<a href="#" onclick="goToPage(' + (currentPage + 1) + '); return false;">Suivant <i class="fas fa-chevron-right"></i></a>';
+        }
+        paginationUl.appendChild(nextLi);
+    }
+    
+    // Aller à une page spécifique
+    function goToPage(page) {
+        currentPage = page;
+        renderCurrentPage();
+        updatePagination();
+    }
+    
+    // Réinitialiser la recherche
+    function resetSearch() {
+        document.getElementById('searchInput').value = '';
+        currentPage = 1;
+        updateFilteredRows();
+    }
+    
+    // Événements
+    document.addEventListener('DOMContentLoaded', function() {
+        // Collecter les lignes
+        collectRows();
+        
+        // Écouteur pour le changement du nombre d'éléments par page
+        const itemsPerPageSelect = document.getElementById('itemsPerPage');
+        if (itemsPerPageSelect) {
+            itemsPerPageSelect.addEventListener('change', function() {
+                const value = this.value;
+                if (value === 'all') {
+                    itemsPerPage = 'all';
+                } else {
+                    itemsPerPage = parseInt(value);
+                }
+                currentPage = 1;
+                renderCurrentPage();
+                updatePagination();
+            });
+        }
+        
+        // Recherche
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const resetBtn = document.getElementById('resetSearchBtn');
+        
+        if (searchInput) {
+            let timeout;
+            searchInput.addEventListener('input', function() {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => {
+                    currentPage = 1;
+                    updateFilteredRows();
+                }, 300);
+            });
+            
+            searchInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    currentPage = 1;
+                    updateFilteredRows();
+                }
+            });
+        }
+        
+        if (searchBtn) {
+            searchBtn.addEventListener('click', function() {
+                currentPage = 1;
+                updateFilteredRows();
+            });
+        }
+        
+        if (resetBtn) {
+            resetBtn.addEventListener('click', resetSearch);
+        }
+        
+        // Animation pour les messages d'erreur
+        const errorMessages = document.querySelectorAll('.error-message');
+        errorMessages.forEach(msg => {
+            msg.addEventListener('mouseenter', function() {
+                const fullMessage = this.getAttribute('title');
+                if (fullMessage && fullMessage.length > 40) {
+                    this.style.cursor = 'help';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

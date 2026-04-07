@@ -1,0 +1,384 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Styles spécifiques à la page de téléchargement */
+    .download-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    .download-header h1 {
+        margin: 0;
+        color: #333;
+        font-size: 24px;
+    }
+    
+    .btn-back {
+        background: #667eea;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.3s;
+    }
+    
+    .btn-back:hover {
+        background: #5a67d8;
+        color: white;
+    }
+    
+    .download-card {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+        margin: 0 20px;
+    }
+    
+    .card-header {
+        padding: 20px;
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+    }
+    
+    .card-header h3 {
+        margin: 0;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .card-body {
+        padding: 40px;
+        text-align: center;
+    }
+    
+    .file-icon {
+        font-size: 64px;
+        color: #667eea;
+        margin-bottom: 20px;
+    }
+    
+    .file-name {
+        background: #f8f9fa;
+        padding: 10px 20px;
+        border-radius: 8px;
+        display: inline-block;
+        font-weight: 600;
+        color: #667eea;
+        margin: 15px 0;
+    }
+    
+    .btn-download {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: linear-gradient(135deg, #28a745, #20c997);
+        color: white;
+        padding: 12px 30px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 16px;
+        margin-top: 20px;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-download:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+        color: white;
+    }
+    
+    .info-text {
+        color: #666;
+        margin: 20px 0;
+        line-height: 1.6;
+    }
+    
+    /* Modal styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        border-radius: 10px;
+        width: 90%;
+        max-width: 500px;
+        animation: slideDown 0.3s ease;
+        overflow: hidden;
+    }
+    
+    @keyframes slideDown {
+        from {
+            transform: translateY(-50px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    .modal-header {
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .modal-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        transition: opacity 0.3s;
+    }
+    
+    .modal-close:hover {
+        opacity: 0.8;
+    }
+    
+    .modal-body {
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .modal-body p {
+        margin: 10px 0;
+        line-height: 1.6;
+    }
+    
+    .modal-footer {
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .btn-modal {
+        padding: 10px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        text-decoration: none;
+    }
+    
+    .btn-modal-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-modal-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+    
+    .btn-modal-primary {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    
+    .btn-modal-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    @media (max-width: 768px) {
+        .download-header {
+            flex-direction: column;
+            gap: 15px;
+            text-align: center;
+        }
+        
+        .card-body {
+            padding: 30px 20px;
+        }
+        
+        .btn-download {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            margin: 20% auto;
+        }
+        
+        .modal-footer {
+            flex-direction: column;
+        }
+        
+        .btn-modal {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="download-header">
+    <h1>
+        <i class="fas fa-download"></i> Téléchargement de fichier
+    </h1>
+    <a href="{% url 'generated-files' %}" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Retour aux fichiers
+    </a>
+</div>
+
+<div class="download-card">
+    <div class="card-header">
+        <h3>
+            <i class="fas fa-check-circle"></i> 
+            Fichier prêt
+        </h3>
+    </div>
+    <div class="card-body">
+        <div class="file-icon">
+            <i class="fas fa-file-code"></i>
+        </div>
+        
+        <div class="file-name">
+            <i class="fas fa-paperclip"></i> {{ filename }}
+        </div>
+        
+        <div class="info-text">
+            <p>Le fichier est prêt à être téléchargé.</p>
+            <p>Cliquez sur le bouton ci-dessous pour le télécharger.</p>
+        </div>
+        
+        <!-- Bouton de téléchargement manuel -->
+        <a href="{% url 'serve_file' filename %}" class="btn-download" id="downloadBtn">
+            <i class="fas fa-download"></i> Télécharger le fichier
+        </a>
+    </div>
+</div>
+
+<!-- Modal 1: Demande d'envoi d'email -->
+<div id="askEmailModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>
+                <i class="fas fa-envelope"></i> Envoyer par email ?
+            </h3>
+            <button type="button" class="modal-close" onclick="closeEmailModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Souhaitez-vous envoyer le fichier <strong>{{ filename }}</strong> par email ?</p>
+            <p class="text-muted" style="color: #666; font-size: 12px;">
+                Vous pourrez saisir l'email expéditeur et destinataire.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-modal btn-modal-secondary" onclick="closeEmailModal()">
+                <i class="fas fa-times"></i> Non, merci
+            </button>
+            <a href="{% url 'send_email_form' file_id %}" class="btn-modal btn-modal-primary">
+                <i class="fas fa-check"></i> Oui, envoyer
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Fonction pour ouvrir le modal
+    function openEmailModal() {
+        const modal = document.getElementById('askEmailModal');
+        if (modal) {
+            modal.style.display = 'block';
+            // Empêcher le scroll de la page
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    // Fonction pour fermer le modal
+    function closeEmailModal() {
+        const modal = document.getElementById('askEmailModal');
+        if (modal) {
+            modal.style.display = 'none';
+            // Réactiver le scroll
+            document.body.style.overflow = 'auto';
+        }
+    }
+    
+    // Afficher automatiquement la modale au chargement de la page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Afficher le modal après un court délai
+        setTimeout(() => {
+            openEmailModal();
+        }, 500);
+        
+        // Gestionnaire pour le bouton de téléchargement (optionnel)
+        const downloadBtn = document.getElementById('downloadBtn');
+        if (downloadBtn) {
+            downloadBtn.addEventListener('click', function(e) {
+                // Le téléchargement se fera normalement
+                console.log('Téléchargement du fichier: {{ filename }}');
+            });
+        }
+    });
+    
+    // Fermer le modal en cliquant en dehors
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('askEmailModal');
+        if (e.target === modal) {
+            closeEmailModal();
+        }
+    });
+    
+    // Fermer le modal avec la touche Echap
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeEmailModal();
+        }
+    });
+</script>
+{% endblock %}

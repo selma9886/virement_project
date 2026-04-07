@@ -1,0 +1,11 @@
+# 1. Fichiers médias (uploads, fichiers générés)
+media/excel_files/
+media/outputs/
+media/uploads/
+
+# 2. Fichiers cache Python
+__pycache__/
+*.pyc
+
+# 3. Fichier counter.json (si contient des données sensibles)
+counter.json

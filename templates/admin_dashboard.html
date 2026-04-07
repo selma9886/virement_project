@@ -1,0 +1,877 @@
+{% extends 'base_admin.html' %}
+{% load static %}
+
+{% block content %}
+<header class="top-bar">
+      <style>
+        /* Styles pour le modal d'ajout utilisateur */
+.permission-section {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 15px 0;
+    border: 1px solid #e0e0e0;
+}
+
+.permission-section h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.users-list {
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.user-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: background 0.2s;
+}
+
+.user-checkbox-item:hover {
+    background: #f8f9fa;
+}
+
+.user-checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.user-checkbox-item .user-avatar {
+    width: 32px;
+    height: 32px;
+    background: #667eea;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+}
+
+.user-checkbox-item .user-info {
+    flex: 1;
+}
+
+.user-checkbox-item .user-name {
+    font-weight: 600;
+    color: #333;
+}
+
+.user-checkbox-item .user-email {
+    font-size: 12px;
+    color: #666;
+}
+
+.btn-small {
+    padding: 5px 12px;
+    font-size: 12px;
+    border-radius: 5px;
+    transition: all 0.3s;
+}
+
+.btn-small:hover {
+    opacity: 0.8;
+    transform: translateY(-1px);
+}
+
+.role-info {
+    background: #e3f2fd;
+    border-left: 3px solid #2196f3;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 8px;
+}
+
+.help-text {
+    font-size: 12px;
+    color: #666;
+    margin-top: 5px;
+    display: block;
+}
+
+.loading-users, .no-users, .error {
+    text-align: center;
+    padding: 30px;
+    color: #666;
+}
+
+.loading-users i {
+    margin-right: 8px;
+}
+    </style>
+
+    <div class="page-title">
+        <h1 id="pageTitle">Tableau de bord</h1>
+        <p id="pageSubtitle">Bienvenue dans l'interface d'administration</p>
+    </div>
+</header>
+
+<div class="content-area">
+    <!-- Tab Tableau de bord -->
+    <!-- <div id="dashboardTab" class="tab-content active">
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <i class="fas fa-file-alt"></i>
+                <h3 id="totalFiles">{{ total_files }}</h3>
+                <p>Total fichiers</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <h3 id="totalUsers">{{ total_users }}</h3>
+                <p>Utilisateurs</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-envelope"></i>
+                <h3 id="totalEmails">{{ total_emails }}</h3>
+                <p>Emails envoyés</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-chart-line"></i>
+                <h3 id="totalSize">{{ total_size }} MB</h3>
+                <p>Espace utilisé</p>
+            </div>
+        </div>
+     
+    </div> -->
+
+    <div id="dashboardTab" class="tab-content active">
+    {% if user.is_superuser or user.userprofile.role == 'admin' %}
+        <!-- Statistiques pour les administrateurs -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <i class="fas fa-file-alt"></i>
+                <h3 id="totalFiles">{{ total_files }}</h3>
+                <p>Total fichiers</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-users"></i>
+                <h3 id="totalUsers">{{ total_users }}</h3>
+                <p>Utilisateurs</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-envelope"></i>
+                <h3 id="totalEmails">{{ total_emails }}</h3>
+                <p>Emails envoyés</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-chart-line"></i>
+                <h3 id="totalSize">{{ total_size }} MB</h3>
+                <p>Espace utilisé</p>
+            </div>
+        </div>
+    {% else %}
+        <!-- Message pour les utilisateurs non-admin -->
+        <div class="stats-grid" id="statsGrid">
+            <!-- <div class="stat-card">
+                <i class="fas fa-file-alt"></i>
+                <h3>{{ user_files_count|default:"0" }}</h3>
+                <p>Mes fichiers</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-envelope"></i>
+                <h3>{{ user_emails_count|default:"0" }}</h3>
+                <p>Mes emails envoyés</p>
+            </div>
+            <div class="stat-card">
+                <i class="fas fa-chart-line"></i>
+                <h3>{{ user_size|default:"0" }} MB</h3>
+                <p>Mon espace utilisé</p>
+            </div> -->
+        </div>
+    {% endif %}
+</div>
+<!-- Bouton -->
+{% if user.is_superuser or user.userprofile.role == 'admin' %}
+<!-- Bouton pour ajouter un utilisateur -->
+<!-- <button class="btn-primary" id="addUserBtn">
+    <i class="fas fa-user-plus"></i> Ajouter un utilisateur
+</button> -->
+ {% endif %}
+
+<!-- Modal d'ajout d'utilisateur -->
+<!-- Modal d'ajout d'utilisateur -->
+<div id="addUserModal" class="modal">
+    <div class="modal-content" style="max-width: 650px;">
+        <span class="close">&times;</span>
+        <h2><i class="fas fa-user-plus"></i> Ajouter un utilisateur</h2>
+
+        <form method="POST" action="{% url 'add_user' %}" id="addUserForm" novalidate>
+            {% csrf_token %}
+
+            <!-- Nom complet -->
+            <div class="form-group">
+                <label><i class="fas fa-user"></i> Nom complet</label>
+                <input type="text" name="fullname" id="newUserFullname" class="form-control" placeholder="Ex: Jean Dupont" required>
+                <small class="help-text">Le nom qui sera affiché dans l'interface</small>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label><i class="fas fa-envelope"></i> Email</label>
+                <input type="email" name="email" id="newUserEmail" class="form-control" placeholder="exemple@domaine.com" required>
+                <small class="help-text">Utilisé pour la connexion</small>
+            </div>
+
+            <!-- Mot de passe -->
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i> Mot de passe</label>
+                <input type="password" name="password1"  id="newUserPassword" class="form-control" placeholder="••••••••" required>
+                <small class="help-text">Minimum 8 caractères</small>
+            </div>
+
+            <!-- Confirmation mot de passe -->
+            <div class="form-group">
+                <label><i class="fas fa-check-circle"></i> Confirmer mot de passe</label>
+                <input type="password" name="password2" class="form-control" placeholder="••••••••" required>
+            </div>
+
+            <!-- Rôle -->
+            <div class="form-group">
+                <label><i class="fas fa-user-tag"></i> Rôle</label>
+                <select name="role" id="roleSelect" class="form-control">
+                    <option value="user">👤 Utilisateur standard</option>
+                    <option value="comptable">💰 Comptable</option>
+                    {% if user.is_superuser %}
+                    <option value="admin">👑 Administrateur</option>
+                    {% endif %}
+                </select>
+                <div class="role-info" style="margin-top: 10px; padding: 8px; background: #e3f2fd; border-radius: 5px; font-size: 12px;">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Permissions :</strong>
+                    <span id="roleDescription">Utilisateur standard - voit uniquement ses propres fichiers</span>
+                </div>
+            </div>
+
+            <!-- Section des permissions pour comptable (cachée par défaut) -->
+            <div id="comptablePermissions" style="display: none;">
+                <div class="permission-section">
+                    <h4><i class="fas fa-key"></i> Configuration des accès</h4>
+                    
+                    <!-- Type d'accès -->
+                    <div class="form-group">
+                        <label>Accès aux fichiers :</label>
+                        <div style="display: flex; gap: 20px; margin-top: 10px; flex-wrap: wrap;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="access_type" value="all" checked> 
+                                <i class="fas fa-globe" style="color: #4caf50;"></i>
+                                <strong>Tous les fichiers</strong>
+                                <span style="color: #666; font-size: 12px;">- Accès à tous les fichiers générés</span>
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="radio" name="access_type" value="selected"> 
+                                <i class="fas fa-users" style="color: #ff9800;"></i>
+                                <strong>Utilisateurs sélectionnés</strong>
+                                <span style="color: #666; font-size: 12px;">- Accès limité à certains utilisateurs</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Sélection des utilisateurs (cachée par défaut) -->
+                    <div id="userSelection" style="display: none;">
+                        <label><i class="fas fa-user-check"></i> Sélectionner les utilisateurs :</label>
+                        <div class="users-list-container" style="margin-top: 10px;">
+                            <div class="users-list-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                                <span><i class="fas fa-list"></i> Liste des utilisateurs</span>
+                                <button type="button" id="selectAllUsers" class="btn-small" style="background: #667eea; color: white; padding: 4px 12px; border: none; border-radius: 4px; cursor: pointer;">
+                                    <i class="fas fa-check-double"></i> Tout sélectionner
+                                </button>
+                            </div>
+                            <div id="usersList" class="users-list" style="max-height: 250px; overflow-y: auto; border: 1px solid #e0e0e0; border-radius: 8px; padding: 10px;">
+                                <div class="loading-users" style="text-align: center; padding: 20px;">
+                                    <i class="fas fa-spinner fa-spin"></i> Chargement des utilisateurs...
+                                </div>
+                            </div>
+                            <small class="help-text" style="display: block; margin-top: 8px;">
+                                <i class="fas fa-info-circle"></i> 
+                                Le comptable pourra voir les fichiers de ces utilisateurs uniquement
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="form-actions" style="display: flex; gap: 10px; margin-top: 25px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                <button type="submit" class="btn-primary" style="flex: 1;">
+                    <i class="fas fa-save"></i> Créer l'utilisateur
+                </button>
+                <button type="button" class="btn-secondary" onclick="closeAddUserModal()" style="flex: 0.5;">
+                    <i class="fas fa-times"></i> Annuler
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+    
+    // Variable pour éviter les doubles initialisations
+    if (window.addUserModalActive) {
+        console.log('Script addUserModal déjà initialisé');
+        return;
+    }
+    window.addUserModalActive = true;
+    
+    // Fonction pour obtenir un élément de façon sécurisée
+    function getElement(id) {
+        var element = document.getElementById(id);
+        if (!element) {
+            console.warn('Élément non trouvé: #' + id);
+        }
+        return element;
+    }
+    
+    // Fonction pour obtenir la valeur d'un champ de façon sécurisée
+    function getValue(element, defaultValue) {
+        if (!element) {
+            return defaultValue || '';
+        }
+        return element.value !== undefined ? element.value : (defaultValue || '');
+    }
+    
+    // Attendre que le DOM soit chargé
+    document.addEventListener('DOMContentLoaded', function() {
+        // Récupérer les éléments avec vérification
+        var modal = getElement('addUserModal');
+        var btn = getElement('addUserBtn');
+        var closeBtn = document.querySelector('#addUserModal .close');
+        var roleSelect = getElement('roleSelect');
+        var comptablePermissions = getElement('comptablePermissions');
+        var roleDescription = getElement('roleDescription');
+        var userSelection = getElement('userSelection');
+        var form = getElement('addUserForm');
+        
+        // Si le modal ou le bouton n'existe pas, on arrête
+        if (!btn || !modal) {
+            console.log('Modal d\'ajout utilisateur non trouvé dans la page');
+            return;
+        }
+        
+        // Descriptions des rôles
+        var roleDescriptions = {
+            'user': 'Utilisateur standard - voit uniquement ses propres fichiers',
+            'comptable': 'Comptable - peut voir les fichiers des utilisateurs sélectionnés',
+            'admin': 'Administrateur - accès complet à toutes les fonctionnalités'
+        };
+        
+        // Charger la liste des utilisateurs
+        function loadUsersList() {
+            var usersListDiv = getElement('usersList');
+            if (!usersListDiv) {
+                return;
+            }
+            
+            usersListDiv.innerHTML = '<div class="loading-users"><i class="fas fa-spinner fa-spin"></i> Chargement des utilisateurs...</div>';
+            
+            fetch('/api/get-users/')
+                .then(function(response) {
+                    if (!response.ok) {
+                        throw new Error('Erreur HTTP: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.users && data.users.length > 0) {
+                        usersListDiv.innerHTML = '';
+                        var currentUserEmail = document.querySelector('meta[name="user-email"]') ? 
+                            document.querySelector('meta[name="user-email"]').content : '';
+                        
+                        for (var i = 0; i < data.users.length; i++) {
+                            var user = data.users[i];
+                            // Ne pas inclure l'utilisateur actuel dans la liste
+                            if (user.email === currentUserEmail) {
+                                continue;
+                            }
+                            
+                            var initials = (user.name || user.email.charAt(0) || 'U').charAt(0).toUpperCase();
+                            var div = document.createElement('div');
+                            div.className = 'user-checkbox-item';
+                            div.style.cssText = 'display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s;';
+                            div.onmouseover = function() { this.style.backgroundColor = '#f9f9f9'; };
+                            div.onmouseout = function() { this.style.backgroundColor = 'transparent'; };
+                            
+                            div.innerHTML = '<input type="checkbox" name="selected_users" value="' + user.id + '" id="user_' + user.id + '" style="width: 18px; height: 18px; cursor: pointer;">' +
+                                '<label for="user_' + user.id + '" style="display: flex; align-items: center; gap: 12px; flex: 1; cursor: pointer; margin: 0;">' +
+                                    '<div style="width: 32px; height: 32px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">' + escapeHtml(initials) + '</div>' +
+                                    '<div style="flex: 1;">' +
+                                        '<div style="font-weight: 600; color: #333;">' + escapeHtml(user.name || 'Sans nom') + '</div>' +
+                                        '<div style="font-size: 12px; color: #666;">' + escapeHtml(user.email || '') + '</div>' +
+                                    '</div>' +
+                                '</label>';
+                            usersListDiv.appendChild(div);
+                        }
+                        
+                        // Ajouter un compteur d'utilisateurs sélectionnés (si pas déjà présent)
+                        var existingCounter = document.getElementById('selectedUsersCounter');
+                        if (!existingCounter) {
+                            var counterDiv = document.createElement('div');
+                            counterDiv.id = 'selectedUsersCounter';
+                            counterDiv.style.cssText = 'margin-top: 10px; padding: 8px; background: #f0f0f0; border-radius: 5px; font-size: 12px; text-align: center;';
+                            counterDiv.innerHTML = '<i class="fas fa-user-check"></i> <span id="selectedCount">0</span> utilisateur(s) sélectionné(s)';
+                            usersListDiv.parentNode.appendChild(counterDiv);
+                        }
+                        
+                        // Ajouter l'événement pour mettre à jour le compteur
+                        var checkboxes = document.querySelectorAll('#usersList input[name="selected_users"]');
+                        function updateCounter() {
+                            var checked = document.querySelectorAll('#usersList input[name="selected_users"]:checked').length;
+                            var counterSpan = document.getElementById('selectedCount');
+                            if (counterSpan) {
+                                counterSpan.textContent = checked;
+                            }
+                        }
+                        
+                        for (var j = 0; j < checkboxes.length; j++) {
+                            checkboxes[j].removeEventListener('change', updateCounter);
+                            checkboxes[j].addEventListener('change', updateCounter);
+                        }
+                        updateCounter();
+                        
+                    } else {
+                        usersListDiv.innerHTML = '<div class="no-users" style="text-align: center; padding: 20px; color: #666;">' +
+                            '<i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>' +
+                            'Aucun utilisateur disponible</div>';
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Erreur chargement utilisateurs:', error);
+                    usersListDiv.innerHTML = '<div class="error" style="text-align: center; padding: 20px; color: #f44336;">' +
+                        '<i class="fas fa-exclamation-circle" style="font-size: 24px; margin-bottom: 10px; display: block;"></i>' +
+                        'Erreur de chargement des utilisateurs<br>' +
+                        '<small>' + escapeHtml(error.message) + '</small></div>';
+                });
+        }
+        
+        // Échapper les caractères HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            var div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Gérer le changement de rôle (si l'élément existe)
+        if (roleSelect) {
+            roleSelect.addEventListener('change', function() {
+                var selectedRole = getValue(roleSelect, 'user');
+                if (roleDescription) {
+                    roleDescription.textContent = roleDescriptions[selectedRole] || roleDescriptions.user;
+                }
+                
+                if (selectedRole === 'comptable') {
+                    if (comptablePermissions) {
+                        comptablePermissions.style.display = 'block';
+                        comptablePermissions.style.animation = 'fadeIn 0.3s ease-in-out';
+                    }
+                    loadUsersList();
+                } else {
+                    if (comptablePermissions) {
+                        comptablePermissions.style.display = 'none';
+                    }
+                    if (userSelection) {
+                        userSelection.style.display = 'none';
+                    }
+                }
+            });
+        }
+        
+        // Gérer les radios d'accès (si elles existent)
+        var accessRadios = document.querySelectorAll('input[name="access_type"]');
+        if (accessRadios.length > 0) {
+            for (var i = 0; i < accessRadios.length; i++) {
+                accessRadios[i].addEventListener('change', function() {
+                    if (userSelection) {
+                        if (this.value === 'selected') {
+                            userSelection.style.display = 'block';
+                            userSelection.style.animation = 'slideDown 0.3s ease-in-out';
+                        } else {
+                            userSelection.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        }
+        
+        // Bouton tout sélectionner
+        var selectAllBtn = getElement('selectAllUsers');
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', function() {
+                var checkboxes = document.querySelectorAll('#usersList input[name="selected_users"]');
+                if (checkboxes.length > 0) {
+                    var allChecked = true;
+                    for (var i = 0; i < checkboxes.length; i++) {
+                        if (!checkboxes[i].checked) {
+                            allChecked = false;
+                            break;
+                        }
+                    }
+                    for (var i = 0; i < checkboxes.length; i++) {
+                        checkboxes[i].checked = !allChecked;
+                    }
+                    
+                    // Mettre à jour le texte du bouton
+                    selectAllBtn.innerHTML = allChecked ? 
+                        '<i class="fas fa-check-double"></i> Tout sélectionner' : 
+                        '<i class="fas fa-times"></i> Tout désélectionner';
+                    
+                    // Mettre à jour le compteur
+                    var counterSpan = document.getElementById('selectedCount');
+                    if (counterSpan) {
+                        var checkedCount = document.querySelectorAll('#usersList input[name="selected_users"]:checked').length;
+                        counterSpan.textContent = checkedCount;
+                    }
+                }
+            });
+        }
+        
+        // Ouvrir le modal
+        if (btn) {
+            btn.onclick = function(e) {
+                e.preventDefault();
+                if (modal) {
+                    modal.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                    
+                    // Réinitialiser le formulaire
+                    if (form) {
+                        form.reset();
+                    }
+                    
+                    // Réinitialiser les sélections
+                    if (roleSelect) {
+                        roleSelect.value = 'user';
+                        // Déclencher l'événement change
+                        var changeEvent = new Event('change', { bubbles: true });
+                        roleSelect.dispatchEvent(changeEvent);
+                    }
+                    
+                    if (roleDescription) {
+                        roleDescription.textContent = roleDescriptions.user;
+                    }
+                    
+                    if (comptablePermissions) {
+                        comptablePermissions.style.display = 'none';
+                    }
+                    
+                    if (userSelection) {
+                        userSelection.style.display = 'none';
+                    }
+                    
+                    // Réinitialiser les radios d'accès
+                    var defaultRadio = document.querySelector('input[name="access_type"][value="all"]');
+                    if (defaultRadio) {
+                        defaultRadio.checked = true;
+                    }
+                    
+                    // Supprimer l'ancien compteur s'il existe
+                    var oldCounter = document.getElementById('selectedUsersCounter');
+                    if (oldCounter) {
+                        oldCounter.remove();
+                    }
+                }
+            };
+        }
+        
+        // Fermer avec X - Utiliser addEventListener au lieu d'écraser
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeModal();
+            });
+        }
+        
+        // Fermer en cliquant dehors - Utiliser addEventListener au lieu d'écraser
+        window.addEventListener('click', function(event) {
+            if (modal && event.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Fermer avec Echap
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && modal && modal.style.display === 'block') {
+                closeModal();
+            }
+        });
+        
+        function closeModal() {
+            if (modal) {
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+                if (form) {
+                    form.reset();
+                }
+                if (comptablePermissions) {
+                    comptablePermissions.style.display = 'none';
+                }
+                if (userSelection) {
+                    userSelection.style.display = 'none';
+                }
+                // Supprimer le compteur s'il existe
+                var counter = document.getElementById('selectedUsersCounter');
+                if (counter) {
+                    counter.remove();
+                }
+            }
+        }
+        
+        // Gestionnaire d'événement pour la soumission du formulaire
+        if (form) {
+            // Supprimer l'ancien gestionnaire s'il existe
+            form.removeEventListener('submit', handleFormSubmit);
+            // Ajouter le nouveau gestionnaire
+            form.addEventListener('submit', handleFormSubmit);
+        }
+        
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            // Afficher un indicateur de chargement
+            var submitBtn = form.querySelector('button[type="submit"]');
+            var originalBtnText = submitBtn ? submitBtn.innerHTML : '';
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création en cours...';
+                submitBtn.disabled = true;
+            }
+            
+            // Récupérer le token CSRF
+            let csrfToken = '';
+            const csrfInput = document.querySelector('[name="csrfmiddlewaretoken"]');
+            if (csrfInput && csrfInput.value) {
+                csrfToken = csrfInput.value;
+            } else {
+                const csrfCookie = document.cookie.split(';').find(cookie => cookie.trim().startsWith('csrftoken='));
+                if (csrfCookie) {
+                    csrfToken = csrfCookie.split('=')[1];
+                }
+            }
+            
+            if (!csrfToken) {
+                console.error('Token CSRF non trouvé');
+                alert('Erreur de sécurité: token CSRF manquant');
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+                return;
+            }
+            
+            // Récupérer les valeurs des champs avec vérification
+            const fullnameElem = document.getElementById('newUserFullname');
+            const emailElem = document.getElementById('newUserEmail');
+            const password1Elem = document.getElementById('newUserPassword');
+            const password2Elem = document.querySelector('input[name="password2"]');
+            const roleElem = document.getElementById('roleSelect');
+            
+            const fullname = fullnameElem ? fullnameElem.value.trim() : '';
+            const email = emailElem ? emailElem.value.trim() : '';
+            const password1 = password1Elem ? password1Elem.value : '';
+            const password2 = password2Elem ? password2Elem.value : '';
+            const role = roleElem ? roleElem.value : '';
+            
+            // Validation de base
+            if (!fullname || !email || !password1 || !password2) {
+                alert('Veuillez remplir tous les champs obligatoires');
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+                return;
+            }
+            
+            if (password1 !== password2) {
+                alert('Les mots de passe ne correspondent pas');
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+                return;
+            }
+            
+            if (password1.length < 8) {
+                alert('Le mot de passe doit contenir au moins 8 caractères');
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+                return;
+            }
+            
+            // Validation email basique
+            const emailRegex = /^[^\s@]+@([^\s@]+\.)+[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert('Veuillez entrer une adresse email valide');
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+                return;
+            }
+            
+            // Créer FormData pour envoyer comme formulaire
+            const formData = new FormData();
+            formData.append('fullname', fullname);
+            formData.append('email', email);
+            formData.append('password1', password1);
+            formData.append('password2', password2);
+            formData.append('role', role);
+            
+            // Ajouter les champs spécifiques pour le comptable
+            if (role === 'comptable') {
+                const accessType = document.querySelector('input[name="access_type"]:checked');
+                if (accessType) {
+                    console.log('Access type selected:', accessType.value);
+                    formData.append('access_type', accessType.value);
+                    
+                    if (accessType.value === 'selected') {
+                        const selectedUsers = document.querySelectorAll('input[name="selected_users"]:checked');
+                        console.log('Selected users count:', selectedUsers.length);
+                        
+                        if (selectedUsers.length === 0) {
+                            alert('❌ Veuillez sélectionner au moins un utilisateur');
+                            if (submitBtn) {
+                                submitBtn.innerHTML = originalBtnText;
+                                submitBtn.disabled = false;
+                            }
+                            return;
+                        }
+                        
+                        selectedUsers.forEach(user => {
+                            formData.append('selected_users', user.value);
+                            console.log('Adding selected user:', user.value);
+                        });
+                    }
+                } else {
+                    console.warn('No access type selected for comptable, using default "all"');
+                    formData.append('access_type', 'all');
+                }
+            }
+            
+            // Afficher les données pour debug
+            console.log('Sending form data:');
+            for (let pair of formData.entries()) {
+                console.log(pair[0] + ': ' + pair[1]);
+            }
+            
+            // Envoyer la requête
+            fetch('/add-user/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                
+                // Vérifier si la réponse est JSON
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                } else {
+                    // Si ce n'est pas du JSON, c'est probablement une redirection
+                    if (response.redirected) {
+                        window.location.href = response.url;
+                        return null;
+                    }
+                    return response.text().then(text => {
+                        console.error('Non-JSON response:', text);
+                        throw new Error('Réponse inattendue du serveur');
+                    });
+                }
+            })
+            .then(data => {
+                if (data && data.success) {
+                    // Succès
+                    alert(data.message || '✅ Utilisateur créé avec succès !');
+                    closeModal();
+                    // Rafraîchir la page après un court délai
+                    setTimeout(() => {
+                        location.reload();
+                    }, 500);
+                } else if (data && data.error) {
+                    // Erreur retournée par le serveur
+                    alert('❌ ' + data.error);
+                    if (submitBtn) {
+                        submitBtn.innerHTML = originalBtnText;
+                        submitBtn.disabled = false;
+                    }
+                } else {
+                    // Erreur inconnue
+                    alert('❌ Une erreur inattendue est survenue');
+                    if (submitBtn) {
+                        submitBtn.innerHTML = originalBtnText;
+                        submitBtn.disabled = false;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur création utilisateur:', error);
+                alert('❌ Erreur lors de la création: ' + error.message);
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+        
+        // Ajouter des animations CSS
+        var style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(-10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            @keyframes slideDown {
+                from { opacity: 0; transform: translateY(-20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .modal-content {
+                animation: fadeIn 0.3s ease-in-out;
+            }
+            .user-checkbox-item {
+                transition: background 0.2s;
+            }
+            .user-checkbox-item:hover {
+                background-color: #f9f9f9;
+            }
+            #usersList {
+                scrollbar-width: thin;
+                scrollbar-color: #667eea #e0e0e0;
+            }
+            #usersList::-webkit-scrollbar {
+                width: 8px;
+            }
+            #usersList::-webkit-scrollbar-track {
+                background: #e0e0e0;
+                border-radius: 4px;
+            }
+            #usersList::-webkit-scrollbar-thumb {
+                background: #667eea;
+                border-radius: 4px;
+            }
+            #usersList::-webkit-scrollbar-thumb:hover {
+                background: #5a67d8;
+            }
+        `;
+        document.head.appendChild(style);
+    });
+})();
+</script>
+{% endblock %}
