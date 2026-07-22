@@ -122,18 +122,30 @@ WSGI_APPLICATION = 'virement_project.wsgi.application'
 #     }
 # }
 
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key")
+DEBUG = os.getenv("DEBUG", "0") == "1"
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0,192.168.1.121").split(",")
+
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_URL = "/media/"
+
+STATIC_URL = "/static/"
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bnm_db',       # Nom de la base créée
-        'USER': 'root',         # Utilisateur XAMPP
-        'PASSWORD': '',         # Mot de passe XAMPP root (vide par défaut)
-        'HOST': '127.0.0.1',    # Utilise 127.0.0.1 pour forcer TCP et éviter socket MariaDB
-        'PORT': '3306',         # Port MySQL XAMPP
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": os.getenv("DB_NAME", "virement_db"),
+        "USER": os.getenv("DB_USER", "virement"),
+        "PASSWORD": os.getenv("DB_PASSWORD", "virement"),
+        "HOST": os.getenv("DB_HOST", "db"),
+        "PORT": os.getenv("DB_PORT", "3306"),
     }
 }
-
-
 
 
 
