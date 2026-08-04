@@ -30,7 +30,7 @@ class EmailForm(forms.Form):
     
     smtp_host = forms.CharField(
         label="🖥️ Serveur SMTP",
-        initial='smtp.gmail.com',
+        initial='192.168.1.91',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'smtp.gmail.com'
@@ -40,7 +40,7 @@ class EmailForm(forms.Form):
     
     smtp_port = forms.IntegerField(
         label="🔌 Port SMTP",
-        initial=587,
+        initial=25,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'placeholder': '587'
@@ -51,7 +51,7 @@ class EmailForm(forms.Form):
     # ===== SECTION 2 : DESTINATAIRE =====
     to_email = forms.EmailField(
         label="📨 Email du destinataire",
-        initial="selmamoulaye8@gmail.com",  # 👈 Ajoutez cette ligne
+        initial="tvarah@bnm.mr",  # 👈 Ajoutez cette ligne
         widget=forms.EmailInput(attrs={
             'class': 'form-control',
             'placeholder': 'destinataire@exemple.com',
