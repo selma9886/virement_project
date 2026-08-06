@@ -29,7 +29,7 @@ services:
     volumes:
       - .:/app
     ports:
-      - "8050:8000"
+      - "8084:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -40,7 +40,7 @@ services:
       DB_PASSWORD: virement
       DB_PORT: 3306
       DEBUG: "1"
-      ALLOWED_HOSTS: "localhost,127.0.0.1,192.168.1.24,0.0.0.0"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,192.168.1.48,0.0.0.0"
       PYTHONUNBUFFERED: "1"
     networks:
       - virement_network

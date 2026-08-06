@@ -200,6 +200,8 @@ def create_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance, is_valid=is_valid)
 
 
+
+
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("email")
@@ -211,8 +213,23 @@ def login_view(request):
             # Superusers passent toujours
             if user.is_superuser or (hasattr(user, "userprofile") and user.userprofile.is_valid):
                 login(request, user)
-                messages.success(request, "")
-                return redirect("admin_dashboard")
+                messages.success(request, "Connexion réussie!")
+                
+                # Redirection selon le rôle
+                if hasattr(user, 'userprofile'):
+                    role = user.userprofile.role
+                    
+                    if role == 'admin':
+                        return redirect("admin_dashboard")  # Page admin
+                    elif role == 'comptable':
+                        return redirect("generated-files")  # Page comptable
+                    elif role == 'user':
+                        return redirect("index")  # Page utilisateur
+                    else:
+                        return redirect("admin_dashboard")  # Fallback
+                else:
+                    # Si pas de profil, rediriger vers admin par défaut
+                    return redirect("admin_dashboard")
             
             messages.error(request, "❌ Votre compte n'est pas encore validé.")
             return redirect("login")
@@ -220,6 +237,9 @@ def login_view(request):
         messages.error(request, "Email ou mot de passe incorrect")
     
     return render(request, "login.html")
+
+
+
 
 
 def register(request):
@@ -1221,14 +1241,16 @@ def send_email_form(request, file_id):
                 msg.attach(part)
                 
                 # Connexion au serveur SMTP
-                if data['smtp_port'] == 25:
-                    # Port 25 = pas d'authentification (serveur interne)
-                    server = smtplib.SMTP(data['smtp_host'], data['smtp_port'])
-                else:
-                    # Autres ports - essayer sans auth d'abord
-                    server = smtplib.SMTP(data['smtp_host'], data['smtp_port'])
-                
-                # Envoyer l'email (sans login pour port 25)
+                server = smtplib.SMTP(data['smtp_host'], data['smtp_port'])
+                server.ehlo()
+
+                if data['smtp_port'] == 587:
+                   server.starttls()
+                   server.ehlo()
+
+                # Authentification
+                server.login(data['from_email'], data['email_password'])
+
                 server.send_message(msg)
                 server.quit()
                 

@@ -5,12 +5,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-1tkm9$2+1m%1hd=sa2m*)(7hf@ntjs^)l#9dd%(m+xrftck1@!")
 DEBUG = os.getenv("DEBUG", "1") == "1"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,192.168.1.24,0.0.0.0").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,192.168.1.48,0.0.0.0").split(",")
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8050",
     "http://127.0.0.1:8050",
-    "http://192.168.1.24:8050",
+    "http://192.168.1.48:8050",
     "http://0.0.0.0:8050",
 ]
 

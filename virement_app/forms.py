@@ -40,7 +40,7 @@ class EmailForm(forms.Form):
     
     smtp_port = forms.IntegerField(
         label="🔌 Port SMTP",
-        initial=25,
+        initial=587,
         widget=forms.NumberInput(attrs={
             'class': 'form-control',
             'placeholder': '587'
