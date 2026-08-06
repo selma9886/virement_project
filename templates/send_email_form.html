@@ -1,9 +1,10 @@
+<!-- send_email_form.html -->
 {% extends 'base_admin.html' %}
 {% load static %}
 
 {% block extra_css %}
 <style>
-    /* Styles spécifiques à la page d'envoi d'email */
+    /* Styles de base */
     .email-header {
         display: flex;
         justify-content: space-between;
@@ -19,23 +20,6 @@
         margin: 0;
         color: #333;
         font-size: 24px;
-    }
-    
-    .btn-back {
-        background: #667eea;
-        color: white;
-        padding: 10px 20px;
-        border-radius: 5px;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: background 0.3s;
-    }
-    
-    .btn-back:hover {
-        background: #5a67d8;
-        color: white;
     }
     
     .email-card {
@@ -61,46 +45,8 @@
         color: white;
     }
     
-    .card-header.bg-info {
-        background: linear-gradient(135deg, #17a2b8, #138496);
-        color: white;
-    }
-    
-    .card-header h4 {
-        margin: 0;
-        font-size: 18px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
     .card-body {
         padding: 20px;
-    }
-    
-    .alert {
-        padding: 12px 15px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .alert-info {
-        background: #e3f2fd;
-        border-left: 4px solid #2196f3;
-        color: #0d47a1;
-    }
-    
-    .alert-warning {
-        background: #fff3cd;
-        border-left: 4px solid #ff9800;
-        color: #7a5200;
-    }
-    
-    .alert i {
-        font-size: 20px;
     }
     
     .form-group {
@@ -157,26 +103,6 @@
         display: block;
     }
     
-    .row {
-        display: flex;
-        gap: 20px;
-        flex-wrap: wrap;
-    }
-    
-    .col-md-6 {
-        flex: 1;
-        min-width: 200px;
-    }
-    
-    .form-actions {
-        display: flex;
-        justify-content: space-between;
-        gap: 15px;
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #e0e0e0;
-    }
-    
     .btn {
         padding: 10px 24px;
         border: none;
@@ -211,6 +137,131 @@
         box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
     }
     
+    .btn-outline-success {
+        color: #28a745;
+        border: 1px solid #28a745;
+        background: transparent;
+    }
+    
+    .btn-outline-success:hover {
+        background: #28a745;
+        color: white;
+    }
+    
+    .btn-outline-danger {
+        color: #dc3545;
+        border: 1px solid #dc3545;
+        background: transparent;
+    }
+    
+    .btn-outline-danger:hover {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-outline-secondary {
+        color: #6c757d;
+        border: 1px solid #6c757d;
+        background: transparent;
+    }
+    
+    .btn-outline-secondary:hover {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-outline-primary {
+        color: #667eea;
+        border: 1px solid #667eea;
+        background: transparent;
+    }
+    
+    .btn-outline-primary:hover {
+        background: #667eea;
+        color: white;
+    }
+    
+    .btn-sm {
+        padding: 5px 12px;
+        font-size: 13px;
+    }
+    
+    .d-flex {
+        display: flex;
+    }
+    
+    .flex-wrap {
+        flex-wrap: wrap;
+    }
+    
+    .gap-2 {
+        gap: 8px;
+    }
+    
+    .mt-3 {
+        margin-top: 16px;
+    }
+    
+    .ms-2 {
+        margin-left: 8px;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 700;
+        border-radius: 20px;
+        text-align: center;
+    }
+    
+    .badge.bg-light {
+        background: #f8f9fa;
+        color: #212529;
+    }
+    
+    .badge.bg-danger {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .badge.bg-warning {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .badge.bg-success {
+        background: #28a745;
+        color: white;
+    }
+    
+    .alert {
+        padding: 12px 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .alert-success {
+        background: #d4edda;
+        border-left: 4px solid #28a745;
+        color: #155724;
+    }
+    
+    .alert-error {
+        background: #f8d7da;
+        border-left: 4px solid #dc3545;
+        color: #721c24;
+    }
+    
+    .alert-warning {
+        background: #fff3cd;
+        border-left: 4px solid #ff9800;
+        color: #7a5200;
+    }
+    
     .file-info {
         background: #f8f9fa;
         padding: 12px 15px;
@@ -227,17 +278,28 @@
         color: #667eea;
     }
     
-    .file-info strong {
-        color: #333;
+    .row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
     }
     
-    .warning-list {
-        margin: 10px 0 0 20px;
-        padding-left: 0;
+    .col-md-6 {
+        flex: 1;
+        min-width: 200px;
     }
     
-    .warning-list li {
-        margin-bottom: 5px;
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .hidden-fields {
+        display: none !important;
     }
     
     @media (max-width: 768px) {
@@ -249,7 +311,6 @@
         
         .row {
             flex-direction: column;
-            gap: 15px;
         }
         
         .form-actions {
@@ -260,92 +321,25 @@
             width: 100%;
             justify-content: center;
         }
-        
-        .email-card {
-            margin: 0 10px;
-        }
     }
 </style>
-
-<style>
-    /* Vos styles existants */
-    .alert {
-        padding: 15px 20px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        border-left: 4px solid;
-    }
-    
-    .alert-success {
-        background-color: #d4edda;
-        border-left-color: #28a745;
-        color: #155724;
-    }
-    
-    .alert-error {
-        background-color: #f8d7da;
-        border-left-color: #dc3545;
-        color: #721c24;
-    }
-    
-    .alert-warning {
-        background-color: #fff3cd;
-        border-left-color: #ffc107;
-        color: #856404;
-    }
-    
-    .alert-info {
-        background-color: #d1ecf1;
-        border-left-color: #17a2b8;
-        color: #0c5460;
-    }
-    
-    .alert i {
-        margin-right: 10px;
-        font-size: 18px;
-    }
-    
-    .close-alert {
-        float: right;
-        cursor: pointer;
-        background: none;
-        border: none;
-        font-size: 20px;
-        font-weight: bold;
-        color: inherit;
-        opacity: 0.7;
-    }
-    
-    .close-alert:hover {
-        opacity: 1;
-    }
-</style>
-
 {% endblock %}
 
 {% block content %}
-
-
-
-
 <div class="email-header">
     <h1>
         <i class="fas fa-paper-plane"></i> Envoyer par email
     </h1>
-    <a href="{% url 'generated-files' %}" class="btn-back">
-        <i class="fas fa-arrow-left"></i> Retour aux fichiers
+    <a href="{% url 'upload' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Retour
     </a>
 </div>
 
-
-<!-- AFFICHAGE DES MESSAGES - À PLACER ICI -->
+<!-- Messages -->
 {% if messages %}
     {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible" role="alert">
-            <button type="button" class="close-alert" data-dismiss="alert" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
-            <i class="{% if message.tags == 'success' %}fas fa-check-circle{% elif message.tags == 'error' %}fas fa-exclamation-circle{% else %}fas fa-info-circle{% endif %}"></i>
+        <div class="alert alert-{{ message.tags }}">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
             {{ message|linebreaks }}
         </div>
     {% endfor %}
@@ -363,7 +357,15 @@
         <form method="post" id="emailForm">
             {% csrf_token %}
             
-            <!-- Info fichier -->
+            <!-- CHAMPS CACHÉS -->
+            <div class="hidden-fields">
+                {{ form.subject.as_hidden }}
+                {{ form.body.as_hidden }}
+                {{ form.smtp_host.as_hidden }}
+                {{ form.smtp_port.as_hidden }}
+            </div>
+            
+            <!-- Fichier -->
             <div class="file-info">
                 <i class="fas fa-paperclip"></i>
                 <div>
@@ -372,13 +374,10 @@
                 </div>
             </div>
             
-            <!-- Section expéditeur -->
+            <!-- Expéditeur -->
             <div class="card" style="margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
                 <div class="card-header bg-primary">
-                    <h4>
-                        <i class="fas fa-user-circle"></i> 
-                        EXPÉDITEUR (votre email)
-                    </h4>
+                    <h4><i class="fas fa-user-circle"></i> EXPÉDITEUR</h4>
                 </div>
                 <div class="card-body">
                     <div class="row">
@@ -391,9 +390,6 @@
                                 {% if form.from_email.errors %}
                                     <div class="error-text">{{ form.from_email.errors }}</div>
                                 {% endif %}
-                                <div class="help-text">
-                                    <i class="fas fa-info-circle"></i> L'email qui enverra le message
-                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -406,200 +402,180 @@
                                     <div class="error-text">{{ form.email_password.errors }}</div>
                                 {% endif %}
                                 <div class="help-text">
-                                    <i class="fas fa-info-circle"></i> {{ form.email_password.help_text }}
+                                    <i class="fas fa-info-circle"></i> Pour Gmail : utilisez un mot de passe d'application
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
-                    <div class="row" style="display:none;">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="{{ form.smtp_host.id_for_label }}">{{ form.smtp_host.label }}</label>
-                                {{ form.smtp_host }}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label for="{{ form.smtp_port.id_for_label }}">{{ form.smtp_port.label }}</label>
-                                {{ form.smtp_port }}
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
             
-            <!-- Section destinataire -->
+            <!-- Destinataires -->
             <div class="card" style="margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden;">
                 <div class="card-header bg-success">
                     <h4>
                         <i class="fas fa-user-friends"></i> 
-                        DESTINATAIRE
+                        DESTINATAIRES
+                        <span class="badge bg-light text-dark ms-2" id="recipientCount">0</span>
                     </h4>
                 </div>
                 <div class="card-body">
                     <div class="form-group">
-                        <label for="{{ form.to_email.id_for_label }}">
-                            <i class="fas fa-envelope"></i> {{ form.to_email.label }}
+                        <label for="{{ form.to_emails.id_for_label }}">
+                            <i class="fas fa-envelope"></i> {{ form.to_emails.label }}
                         </label>
-                        {{ form.to_email }}
-                        {% if form.to_email.errors %}
-                            <div class="error-text">{{ form.to_email.errors }}</div>
+                        {{ form.to_emails }}
+                        {% if form.to_emails.errors %}
+                            <div class="error-text">{{ form.to_emails.errors }}</div>
                         {% endif %}
                         <div class="help-text">
-                            <i class="fas fa-info-circle"></i> Entrez l'adresse email du destinataire
+                            <i class="fas fa-info-circle"></i> Entrez un email par ligne
                         </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- Section contenu (cachée mais gardée pour compatibilité) -->
-            <div class="card" style="margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; display:none;">
-                <div class="card-header bg-info">
-                    <h4>
-                        <i class="fas fa-pencil-alt"></i> 
-                        CONTENU
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <div class="form-group">
-                        <label for="{{ form.subject.id_for_label }}">{{ form.subject.label }}</label>
-                        {{ form.subject }}
-                        {% if form.subject.errors %}
-                            <div class="error-text">{{ form.subject.errors }}</div>
-                        {% endif %}
-                    </div>
                     
-                    <div class="form-group">
-                        <label for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
-                        {{ form.body }}
-                        {% if form.body.errors %}
-                            <div class="error-text">{{ form.body.errors }}</div>
-                        {% endif %}
+                    <!-- Boutons de gestion -->
+                    <div class="mt-3 d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-success" id="addRecipientBtn">
+                            <i class="fas fa-plus-circle"></i> Ajouter
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="removeLastRecipientBtn">
+                            <i class="fas fa-minus-circle"></i> Supprimer
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearRecipientsBtn">
+                            <i class="fas fa-trash-alt"></i> Tout effacer
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="resetDefaultRecipientsBtn">
+                            <i class="fas fa-undo"></i> Rétablir par défaut
+                        </button>
                     </div>
                 </div>
             </div>
-            
             
             <!-- Boutons d'action -->
             <div class="form-actions">
-                <a href="{% url 'generated-files' %}" class="btn btn-secondary">
+                <a href="{% url 'upload' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Annuler
                 </a>
                 <button type="submit" class="btn btn-success">
-                    <i class="fas fa-paper-plane"></i> Envoyer l'email
+                    <i class="fas fa-paper-plane"></i> Envoyer
                 </button>
             </div>
         </form>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const emailForm = document.getElementById('emailForm');
-        
-        if (emailForm) {
-            // Ajouter une confirmation avant envoi
-            emailForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                // Récupérer les valeurs
-                const fromEmail = document.getElementById('{{ form.from_email.id_for_label }}')?.value;
-                const toEmail = document.getElementById('{{ form.to_email.id_for_label }}')?.value;
-                
-                if (!fromEmail || !toEmail) {
-                    alert('❌ Veuillez remplir tous les champs obligatoires.');
-                    return;
+document.addEventListener('DOMContentLoaded', function() {
+    const toEmailsTextarea = document.getElementById('{{ form.to_emails.id_for_label }}');
+    const recipientCountSpan = document.getElementById('recipientCount');
+    const emailForm = document.getElementById('emailForm');
+    
+    // Destinataires par défaut
+    const defaultRecipients = {{ default_recipients|safe|default:'[]' }};
+    
+    // Mettre à jour le compteur
+    function updateRecipientCount() {
+        if (toEmailsTextarea) {
+            const emails = toEmailsTextarea.value.split('\n')
+                .map(email => email.trim())
+                .filter(email => email !== '');
+            const count = emails.length;
+            if (recipientCountSpan) {
+                recipientCountSpan.textContent = count || '0';
+                if (count === 0) {
+                    recipientCountSpan.className = 'badge bg-danger text-white ms-2';
+                } else if (count <= 3) {
+                    recipientCountSpan.className = 'badge bg-warning text-dark ms-2';
+                } else {
+                    recipientCountSpan.className = 'badge bg-success text-white ms-2';
                 }
-                
-                // Validation basique de l'email
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(toEmail)) {
-                    alert('❌ Veuillez entrer une adresse email valide pour le destinataire.');
-                    return;
-                }
-                
-                if (!emailRegex.test(fromEmail)) {
-                    alert('❌ Veuillez entrer une adresse email valide pour l\'expéditeur.');
-                    return;
-                }
-                
-                if (confirm('📧 Êtes-vous sûr de vouloir envoyer cet email ?\n\nDestinataire : ' + toEmail + '\nFichier : {{ file_name }}')) {
-                    // Afficher un indicateur de chargement
-                    const submitBtn = document.querySelector('button[type="submit"]');
-                    const originalText = submitBtn.innerHTML;
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
-                    submitBtn.disabled = true;
-                    
-                    // Soumettre le formulaire
-                    this.submit();
-                    
-                    // Réactiver après un délai (au cas où)
-                    setTimeout(() => {
-                        if (submitBtn.disabled) {
-                            submitBtn.innerHTML = originalText;
-                            submitBtn.disabled = false;
-                        }
-                    }, 10000);
-                }
-            });
-        }
-        
-        // Animation des champs de formulaire
-        const formControls = document.querySelectorAll('.form-control');
-        formControls.forEach(control => {
-            control.addEventListener('focus', function() {
-                this.parentElement.classList.add('focused');
-            });
-            
-            control.addEventListener('blur', function() {
-                this.parentElement.classList.remove('focused');
-            });
-        });
-        
-        // Auto-complétion du sujet (optionnel)
-        const subjectField = document.getElementById('{{ form.subject.id_for_label }}');
-        if (subjectField && !subjectField.value) {
-            subjectField.value = 'Fichier XML généré - {{ file_name }}';
-        }
-        
-        // Auto-complétion du corps du message (optionnel)
-        const bodyField = document.getElementById('{{ form.body.id_for_label }}');
-        if (bodyField && !bodyField.value) {
-            bodyField.value = 'Bonjour,\n\nVeuillez trouver ci-joint le fichier XML généré.\n\nCordialement,\n{{ user.first_name|default:user.username }}';
-        }
-    });
-</script>
-
-<script>
-    // Fonction pour faire disparaître les messages après 50 secondes
-    document.addEventListener('DOMContentLoaded', function() {
-        // Sélectionner tous les messages d'alerte
-        const alerts = document.querySelectorAll('.alert');
-        
-        alerts.forEach(function(alert) {
-            // Disparaître après 50 secondes
-            setTimeout(function() {
-                alert.style.transition = 'opacity 0.5s';
-                alert.style.opacity = '0';
-                setTimeout(function() {
-                    if (alert && alert.parentNode) {
-                        alert.remove();
-                    }
-                }, 500);
-            }, 50000); // 50 secondes = 50000 millisecondes
-            
-            // Bouton de fermeture manuel
-            const closeButton = alert.querySelector('.close-alert');
-            if (closeButton) {
-                closeButton.addEventListener('click', function() {
-                    alert.remove();
-                });
             }
-        });
+        }
+    }
+    
+    // Initialisation
+    if (toEmailsTextarea) {
+        if (toEmailsTextarea.value.trim() === '') {
+            toEmailsTextarea.value = defaultRecipients.join('\n');
+        }
+        updateRecipientCount();
+        toEmailsTextarea.addEventListener('input', updateRecipientCount);
+    }
+    
+    // Ajouter
+    document.getElementById('addRecipientBtn')?.addEventListener('click', function() {
+        const lines = toEmailsTextarea.value.split('\n').filter(line => line.trim() !== '');
+        lines.push('nouveau@exemple.com');
+        toEmailsTextarea.value = lines.join('\n');
+        updateRecipientCount();
+        toEmailsTextarea.focus();
     });
+    
+    // Supprimer
+    document.getElementById('removeLastRecipientBtn')?.addEventListener('click', function() {
+        const lines = toEmailsTextarea.value.split('\n').filter(line => line.trim() !== '');
+        if (lines.length > 0) {
+            lines.pop();
+            toEmailsTextarea.value = lines.join('\n');
+            updateRecipientCount();
+            toEmailsTextarea.focus();
+        }
+    });
+    
+    // Effacer
+    document.getElementById('clearRecipientsBtn')?.addEventListener('click', function() {
+        if (confirm('⚠️ Effacer tous les destinataires ?')) {
+            toEmailsTextarea.value = '';
+            updateRecipientCount();
+            toEmailsTextarea.focus();
+        }
+    });
+    
+    // Rétablir
+    document.getElementById('resetDefaultRecipientsBtn')?.addEventListener('click', function() {
+        if (confirm('🔄 Rétablir les destinataires par défaut ?')) {
+            toEmailsTextarea.value = defaultRecipients.join('\n');
+            updateRecipientCount();
+            toEmailsTextarea.focus();
+        }
+    });
+    
+    // Validation avant soumission
+    emailForm?.addEventListener('submit', function(e) {
+        const emails = toEmailsTextarea.value.split('\n')
+            .map(email => email.trim())
+            .filter(email => email !== '');
+        
+        if (emails.length === 0) {
+            e.preventDefault();
+            alert('❌ Veuillez entrer au moins un destinataire.');
+            return false;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const invalidEmails = emails.filter(email => !emailRegex.test(email));
+        
+        if (invalidEmails.length > 0) {
+            e.preventDefault();
+            alert('❌ Emails invalides :\n' + invalidEmails.join('\n'));
+            return false;
+        }
+        
+        if (!confirm(`📧 Envoyer à ${emails.length} destinataire(s) ?`)) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Indicateur de chargement
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
+            submitBtn.disabled = true;
+        }
+    });
+});
 </script>
-
 {% endblock %}

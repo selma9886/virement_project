@@ -1193,42 +1193,47 @@ def ask_send_email(request, file_id):
 
 
 
+
 @login_required
 def send_email_form(request, file_id):
-    """Deuxième modale : Formulaire d'envoi d'email"""
+    """Formulaire d'envoi d'email à plusieurs destinataires"""
     
-    # Vérifier les permissions de l'utilisateur
+    # Vérifier les permissions
     user_profile = request.user.userprofile
     is_admin = request.user.is_superuser or user_profile.role == 'admin'
     
-    # Récupérer le fichier avec les bonnes permissions
     if is_admin:
-        # Les admins peuvent voir tous les fichiers
         generated_xml = get_object_or_404(GeneratedXML, id=file_id)
     else:
-        # Les utilisateurs normaux ne voient que leurs propres fichiers
         generated_xml = get_object_or_404(GeneratedXML, id=file_id, user=request.user)
     
-    # Vérification supplémentaire pour les admins qui veulent envoyer pour d'autres
     if not is_admin and generated_xml.user != request.user:
-        messages.error(request, "❌ Vous n'avez pas la permission d'envoyer ce fichier.")
-        return redirect('my_generated_files')  # ou une autre page appropriée
+        messages.error(request, "❌ Permission refusée.")
+        return redirect('my_generated_files')
+    
+    # Destinataires par défaut
+    default_recipients = [
+        "tvarah@bnm.mr",
+        "fatousylla@bnm.mr",
+        "hamadi.dia@bnm.mr",
+        "saleck.diop@bnm.mr",
+        "yacine.digbeu@bnm.mr",
+    ]
     
     if request.method == 'POST':
         form = EmailForm(request.POST)
         if form.is_valid():
-            # Récupérer les données du formulaire
             data = form.cleaned_data
+            to_emails = data['to_emails']
             
             try:
                 # Créer le message
                 msg = MIMEMultipart()
                 msg['From'] = data['from_email']
-                msg['To'] = data['to_email']
                 msg['Subject'] = data['subject']
                 msg.attach(MIMEText(data['body'], 'plain'))
                 
-                # Ajouter la pièce jointe (fichier XML)
+                # Ajouter la pièce jointe
                 with open(generated_xml.file_path, "rb") as attachment:
                     part = MIMEBase("application", "octet-stream")
                     part.set_payload(attachment.read())
@@ -1236,77 +1241,116 @@ def send_email_form(request, file_id):
                 encoders.encode_base64(part)
                 part.add_header(
                     "Content-Disposition",
-                    f"attachment; filename={generated_xml.file_name}",
+                    f"attachment; filename={generated_xml.file_name}"
                 )
                 msg.attach(part)
                 
-                # Connexion au serveur SMTP
+                # Connexion SMTP
                 server = smtplib.SMTP(data['smtp_host'], data['smtp_port'])
                 server.ehlo()
-
+                
                 if data['smtp_port'] == 587:
-                   server.starttls()
-                   server.ehlo()
-
-                # Authentification
+                    server.starttls()
+                    server.ehlo()
+                
                 server.login(data['from_email'], data['email_password'])
-
-                server.send_message(msg)
+                
+                # Envoyer à chaque destinataire
+                success_count = 0
+                failed_emails = []
+                
+                for recipient in to_emails:
+                    try:
+                        msg_copy = MIMEMultipart()
+                        msg_copy['From'] = data['from_email']
+                        msg_copy['To'] = recipient
+                        msg_copy['Subject'] = data['subject']
+                        msg_copy.attach(MIMEText(data['body'], 'plain'))
+                        
+                        with open(generated_xml.file_path, "rb") as att:
+                            part = MIMEBase("application", "octet-stream")
+                            part.set_payload(att.read())
+                        
+                        encoders.encode_base64(part)
+                        part.add_header(
+                            "Content-Disposition",
+                            f"attachment; filename={generated_xml.file_name}"
+                        )
+                        msg_copy.attach(part)
+                        
+                        server.send_message(msg_copy)
+                        success_count += 1
+                        
+                        EmailRecord.objects.create(
+                            user=request.user,
+                            generated_xml=generated_xml,
+                            from_email=data['from_email'],
+                            to_email=recipient,
+                            subject=data['subject'],
+                            body=data['body'],
+                            status='sent'
+                        )
+                    except Exception as e:
+                        failed_emails.append(f"{recipient} ({str(e)})")
+                        EmailRecord.objects.create(
+                            user=request.user,
+                            generated_xml=generated_xml,
+                            from_email=data['from_email'],
+                            to_email=recipient,
+                            subject=data['subject'],
+                            body=data['body'],
+                            status='failed',
+                            error_message=str(e)
+                        )
+                
                 server.quit()
                 
-                # Enregistrer le succès
-                EmailRecord.objects.create(
-                    user=request.user,  # L'admin qui envoie l'email
-                    generated_xml=generated_xml,
-                    from_email=data['from_email'],
-                    to_email=data['to_email'],
-                    subject=data['subject'],
-                    body=data['body'],
-                    status='sent'
-                )
+                if success_count > 0:
+                    messages.success(
+                        request,
+                        f"✅ Envoyé à {success_count} destinataire(s) sur {len(to_emails)}"
+                    )
+                if failed_emails:
+                    messages.warning(
+                        request,
+                        f"⚠️ Échec pour :\n" + "\n".join(failed_emails)
+                    )
                 
-                messages.success(request, f"✅ Email envoyé avec succès à {data['to_email']}")
-                
-                # Rediriger vers la page appropriée
-                if is_admin:
-                    return render(request, 'upload.html')
-                else:
-                    return render(request, 'upload.html')
+                return render(request, 'upload.html')
                 
             except Exception as e:
-                # Enregistrer l'échec
-                EmailRecord.objects.create(
-                    user=request.user,
-                    generated_xml=generated_xml,
-                    from_email=data.get('from_email', ''),
-                    to_email=data.get('to_email', ''),
-                    subject=data.get('subject', ''),
-                    body=data.get('body', ''),
-                    status='failed',
-                    error_message=str(e)
-                )
-                
-                messages.error(request, f"❌ Erreur lors de l'envoi : {str(e)}")
-                
-                # Re-rendre le formulaire avec l'erreur
+                messages.error(request, f"❌ Erreur : {str(e)}")
                 context = {
                     'form': form,
                     'file_id': file_id,
-                    'file_name': generated_xml.file_name
+                    'file_name': generated_xml.file_name,
+                    'is_admin': is_admin,
+                    'default_recipients': default_recipients,
                 }
-                return render(request, 'upload.html', context)
+                return render(request, 'send_email_form.html', context)
+        else:
+            messages.error(request, "❌ Veuillez corriger les erreurs.")
+            context = {
+                'form': form,
+                'file_id': file_id,
+                'file_name': generated_xml.file_name,
+                'is_admin': is_admin,
+                'default_recipients': default_recipients,
+            }
+            return render(request, 'send_email_form.html', context)
     else:
-        # Formulaire initial
-        # Pour les admins, on peut laisser l'email par défaut vide ou utiliser leur email
+        # GET - Pré-remplir le formulaire
         initial_data = {
             'from_email': request.user.email,
-            'subject': f"Fichier XML de virement - {generated_xml.file_name}",
-            'body': f"Bonjour,\n\nVeuillez trouver ci-joint le fichier XML de virement généré le {generated_xml.created_at.strftime('%d/%m/%Y à %H:%M')}.\n\nCordialement,\n{request.user.get_full_name() or request.user.username}"
+            'to_emails': '\n'.join(default_recipients),
+            'subject': f"Fichier XML - {generated_xml.file_name}",
+            'body': f"Bonjour,\n\nVeuillez trouver ci-joint le fichier XML généré.\n\nCordialement,\n{request.user.get_full_name() or request.user.username}",
+            'smtp_host': '192.168.1.91',
+            'smtp_port': 587,
         }
         
-        # Pour les admins, ajouter une info sur le propriétaire original
         if is_admin and generated_xml.user != request.user:
-            initial_data['body'] = f"Bonjour,\n\nVeuillez trouver ci-joint le fichier XML de virement généré par {generated_xml.user.get_full_name() or generated_xml.user.username} le {generated_xml.created_at.strftime('%d/%m/%Y à %H:%M')}.\n\nCordialement,\n{request.user.get_full_name() or request.user.username}"
+            initial_data['body'] = f"Bonjour,\n\nVeuillez trouver ci-joint le fichier XML généré par {generated_xml.user.username}.\n\nCordialement,\n{request.user.get_full_name() or request.user.username}"
         
         form = EmailForm(initial=initial_data)
     
@@ -1314,12 +1358,11 @@ def send_email_form(request, file_id):
         'form': form,
         'file_id': file_id,
         'file_name': generated_xml.file_name,
-        'is_admin': is_admin,  # Passer cette info au template si besoin
-        'file_owner': generated_xml.user if is_admin else None
+        'is_admin': is_admin,
+        'file_owner': generated_xml.user if is_admin else None,
+        'default_recipients': default_recipients,
     }
     return render(request, 'send_email_form.html', context)
-
-
 
 
 @login_required
