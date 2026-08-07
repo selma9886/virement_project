@@ -1238,12 +1238,12 @@ def send_email_form(request, file_id):
             all_recipients = to_emails + cc_emails
             
             try:
-                # Créer le message principal
+                # ===== CRÉER UN SEUL EMAIL AVEC TOUS LES DESTINATAIRES =====
                 msg = MIMEMultipart()
                 msg['From'] = data['from_email']
-                msg['To'] = ', '.join(to_emails)
+                msg['To'] = ', '.join(to_emails)  # Tous les TO
                 if cc_emails:
-                    msg['Cc'] = ', '.join(cc_emails)
+                    msg['Cc'] = ', '.join(cc_emails)  # Tous les CC
                 msg['Subject'] = data['subject']
                 msg.attach(MIMEText(data['body'], 'plain'))
                 
@@ -1259,7 +1259,7 @@ def send_email_form(request, file_id):
                 )
                 msg.attach(part)
                 
-                # Connexion SMTP
+                # ===== ENVOYER UN SEUL EMAIL =====
                 server = smtplib.SMTP(data['smtp_host'], data['smtp_port'])
                 server.ehlo()
                 
@@ -1269,114 +1269,33 @@ def send_email_form(request, file_id):
                 
                 server.login(data['from_email'], data['email_password'])
                 
-                # Envoyer à chaque destinataire (TO + CC)
-                success_count = 0
-                failed_emails = []
-                success_details = []
-                failed_details = []
-                
-                for recipient in all_recipients:
-                    try:
-                        msg_copy = MIMEMultipart()
-                        msg_copy['From'] = data['from_email']
-                        msg_copy['To'] = recipient
-                        msg_copy['Subject'] = data['subject']
-                        msg_copy.attach(MIMEText(data['body'], 'plain'))
-                        
-                        with open(generated_xml.file_path, "rb") as att:
-                            part = MIMEBase("application", "octet-stream")
-                            part.set_payload(att.read())
-                        
-                        encoders.encode_base64(part)
-                        part.add_header(
-                            "Content-Disposition",
-                            f"attachment; filename={generated_xml.file_name}"
-                        )
-                        msg_copy.attach(part)
-                        
-                        server.send_message(msg_copy)
-                        success_count += 1
-                        success_details.append(recipient)
-                        
-                        # 👈 SUPPRIMER recipient_type
-                        EmailRecord.objects.create(
-                            user=request.user,
-                            generated_xml=generated_xml,
-                            from_email=data['from_email'],
-                            to_email=recipient,
-                            subject=data['subject'],
-                            body=data['body'],
-                            status='sent'
-                        )
-                    except Exception as e:
-                        error_msg = str(e)
-                        failed_emails.append(recipient)
-                        failed_details.append(f"{recipient} : {error_msg}")
-                        EmailRecord.objects.create(
-                            user=request.user,
-                            generated_xml=generated_xml,
-                            from_email=data['from_email'],
-                            to_email=recipient,
-                            subject=data['subject'],
-                            body=data['body'],
-                            status='failed',
-                            error_message=error_msg
-                        )
-                
+                # Envoyer un seul email à tous les destinataires
+                server.send_message(msg)
                 server.quit()
                 
-                # Messages de confirmation
-                total_recipients = len(all_recipients)
-                failed_count = len(failed_emails)
+                # ===== ENREGISTRER POUR CHAQUE DESTINATAIRE =====
+                for recipient in all_recipients:
+                    recipient_type = "TO" if recipient in to_emails else "CC"
+                    EmailRecord.objects.create(
+                        user=request.user,
+                        generated_xml=generated_xml,
+                        from_email=data['from_email'],
+                        to_email=recipient,
+                        subject=data['subject'],
+                        body=data['body'],
+                        status='sent'
+                    )
+                
+                # ===== MESSAGE DE SUCCÈS =====
                 to_count = len(to_emails)
                 cc_count = len(cc_emails)
+                total_recipients = len(all_recipients)
                 
-                if success_count == total_recipients:
-                    messages.success(request, f"Email envoyé avec succès à {success_count} destinataire(s)")
-                elif success_count > 0 and failed_count > 0:
-                    messages.warning(
-                        request,
-                        f"""
-                        ⚠️ <strong>ENVOI PARTIEL</strong><br>
-                        <hr style="margin: 8px 0; border-color: #ffc107;">
-                        ✅ <strong>{success_count}</strong> email(s) envoyé(s) avec succès<br>
-                        ❌ <strong>{failed_count}</strong> échec(s) sur {total_recipients} destinataire(s)<br>
-                        📁 Fichier : <strong>{generated_xml.file_name}</strong><br>
-                        <br>
-                        <strong>✅ ENVOYÉS À :</strong><br>
-                        {chr(10).join(['  • ' + email for email in success_details])}
-                        <br>
-                        <strong>❌ ÉCHECS :</strong><br>
-                        {chr(10).join(['  • ' + detail for detail in failed_details])}
-                        <hr style="margin: 8px 0; border-color: #ffc107;">
-                        💡 <strong>Suggestions :</strong><br>
-                        • Vérifiez les adresses email des destinataires en échec<br>
-                        • Vérifiez votre connexion internet<br>
-                        • Réessayez d'envoyer aux destinataires en échec
-                        """
-                    )
-                else:
-                    messages.error(
-                        request,
-                        f"""
-                        ❌ <strong>ÉCHEC TOTAL</strong><br>
-                        <hr style="margin: 8px 0; border-color: #dc3545;">
-                        Aucun email n'a pu être envoyé.<br>
-                        📁 Fichier : <strong>{generated_xml.file_name}</strong><br>
-                        👤 Expéditeur : <strong>{data['from_email']}</strong><br>
-                        📋 Total destinataires : <strong>{total_recipients}</strong><br>
-                        <br>
-                        <strong>❌ DESTINATAIRES EN ÉCHEC :</strong><br>
-                        {chr(10).join(['  • ' + detail for detail in failed_details])}
-                        <hr style="margin: 8px 0; border-color: #dc3545;">
-                        💡 <strong>VÉRIFIEZ :</strong><br>
-                        • Vos identifiants SMTP (email et mot de passe)<br>
-                        • Votre connexion internet<br>
-                        • Le serveur SMTP : <strong>{data['smtp_host']}</strong><br>
-                        • Le port SMTP : <strong>{data['smtp_port']}</strong><br>
-                        • Que les adresses emails sont valides
-                        """
-                    )
+                messages.success(
+                    request,
+                    f"✅ Email envoyé avec succès à {total_recipients} destinataire(s) · {generated_xml.file_name} · TO: {to_count} · CC: {cc_count}"
+
+                )
                 
                 return render(request, 'upload.html')
                 
