@@ -45,6 +45,11 @@
         color: white;
     }
     
+    .card-header.bg-info {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+        color: white;
+    }
+    
     .card-body {
         padding: 20px;
     }
@@ -72,6 +77,7 @@
         border-radius: 8px;
         font-size: 14px;
         transition: all 0.3s;
+        box-sizing: border-box;
     }
     
     .form-control:focus {
@@ -82,7 +88,8 @@
     
     textarea.form-control {
         resize: vertical;
-        min-height: 100px;
+        min-height: 60px;
+        font-family: inherit;
     }
     
     .help-text {
@@ -137,10 +144,17 @@
         box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
     }
     
+    .btn-success:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
     .btn-outline-success {
         color: #28a745;
         border: 1px solid #28a745;
         background: transparent;
+        cursor: pointer;
     }
     
     .btn-outline-success:hover {
@@ -152,6 +166,7 @@
         color: #dc3545;
         border: 1px solid #dc3545;
         background: transparent;
+        cursor: pointer;
     }
     
     .btn-outline-danger:hover {
@@ -163,6 +178,7 @@
         color: #6c757d;
         border: 1px solid #6c757d;
         background: transparent;
+        cursor: pointer;
     }
     
     .btn-outline-secondary:hover {
@@ -174,10 +190,23 @@
         color: #667eea;
         border: 1px solid #667eea;
         background: transparent;
+        cursor: pointer;
     }
     
     .btn-outline-primary:hover {
         background: #667eea;
+        color: white;
+    }
+    
+    .btn-outline-info {
+        color: #17a2b8;
+        border: 1px solid #17a2b8;
+        background: transparent;
+        cursor: pointer;
+    }
+    
+    .btn-outline-info:hover {
+        background: #17a2b8;
         color: white;
     }
     
@@ -232,6 +261,11 @@
     
     .badge.bg-success {
         background: #28a745;
+        color: white;
+    }
+    
+    .badge.bg-info {
+        background: #17a2b8;
         color: white;
     }
     
@@ -302,6 +336,40 @@
         display: none !important;
     }
     
+    .recipient-section {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .recipient-section.to-section {
+        border-left: 4px solid #28a745;
+    }
+    
+    .recipient-section.cc-section {
+        border-left: 4px solid #17a2b8;
+    }
+    
+    .section-title {
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .section-title .badge {
+        font-size: 11px;
+    }
+    
+    .section-title .help-text-inline {
+        font-size: 12px;
+        color: #666;
+        font-weight: normal;
+    }
+    
     @media (max-width: 768px) {
         .email-header {
             flex-direction: column;
@@ -340,7 +408,7 @@
     {% for message in messages %}
         <div class="alert alert-{{ message.tags }}">
             <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
-            {{ message|linebreaks }}
+            {{ message|linebreaks|safe }}
         </div>
     {% endfor %}
 {% endif %}
@@ -416,36 +484,87 @@
                     <h4>
                         <i class="fas fa-user-friends"></i> 
                         DESTINATAIRES
-                        <span class="badge bg-light text-dark ms-2" id="recipientCount">0</span>
+                        <span class="badge bg-light text-dark ms-2" id="totalRecipientCount">0</span>
+                        <small class="ms-2 text-light" style="font-size: 14px; font-weight: normal;">
+                            <i class="fas fa-info-circle"></i> TO + CC
+                        </small>
                     </h4>
                 </div>
                 <div class="card-body">
-                    <div class="form-group">
-                        <label for="{{ form.to_emails.id_for_label }}">
-                            <i class="fas fa-envelope"></i> {{ form.to_emails.label }}
-                        </label>
-                        {{ form.to_emails }}
-                        {% if form.to_emails.errors %}
-                            <div class="error-text">{{ form.to_emails.errors }}</div>
-                        {% endif %}
-                        <div class="help-text">
-                            <i class="fas fa-info-circle"></i> Entrez un email par ligne
+                    
+                    <!-- SECTION TO (Destinataires principaux) -->
+                    <div class="recipient-section to-section">
+                        <div class="section-title">
+                            <i class="fas fa-envelope text-success"></i>
+                            <strong>{{ form.to_emails.label }}</strong>
+                            <span class="badge bg-success" id="toCount">0</span>
+                            <span class="help-text-inline">Destinataires principaux</span>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            {{ form.to_emails }}
+                            {% if form.to_emails.errors %}
+                                <div class="error-text">{{ form.to_emails.errors }}</div>
+                            {% endif %}
+                            <div class="help-text">
+                                <i class="fas fa-info-circle"></i> {{ form.to_emails.help_text }}
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-success" id="addToBtn">
+                                <i class="fas fa-plus-circle"></i> Ajouter TO
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="removeToBtn">
+                                <i class="fas fa-minus-circle"></i> Supprimer
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearToBtn">
+                                <i class="fas fa-trash-alt"></i> Effacer
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="resetToBtn">
+                                <i class="fas fa-undo"></i> Rétablir
+                            </button>
                         </div>
                     </div>
                     
-                    <!-- Boutons de gestion -->
+                    <!-- SECTION CC (Copie) -->
+                    <div class="recipient-section cc-section">
+                        <div class="section-title">
+                            <i class="fas fa-copy text-info"></i>
+                            <strong>{{ form.cc_emails.label }}</strong>
+                            <span class="badge bg-info" id="ccCount">0</span>
+                            <span class="help-text-inline">Destinataires en copie</span>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            {{ form.cc_emails }}
+                            {% if form.cc_emails.errors %}
+                                <div class="error-text">{{ form.cc_emails.errors }}</div>
+                            {% endif %}
+                            <div class="help-text">
+                                <i class="fas fa-info-circle"></i> {{ form.cc_emails.help_text }}
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-info" id="addCcBtn">
+                                <i class="fas fa-plus-circle"></i> Ajouter CC
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="removeCcBtn">
+                                <i class="fas fa-minus-circle"></i> Supprimer
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="clearCcBtn">
+                                <i class="fas fa-trash-alt"></i> Effacer
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="resetCcBtn">
+                                <i class="fas fa-undo"></i> Rétablir
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Boutons globaux -->
                     <div class="mt-3 d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-success" id="addRecipientBtn">
-                            <i class="fas fa-plus-circle"></i> Ajouter
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="resetDefaultAll">
+                            <i class="fas fa-undo"></i> Rétablir tous les destinataires par défaut
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-danger" id="removeLastRecipientBtn">
-                            <i class="fas fa-minus-circle"></i> Supprimer
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearRecipientsBtn">
-                            <i class="fas fa-trash-alt"></i> Tout effacer
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="resetDefaultRecipientsBtn">
-                            <i class="fas fa-undo"></i> Rétablir par défaut
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="clearAllRecipients">
+                            <i class="fas fa-trash-alt"></i> Effacer tous les destinataires
                         </button>
                     </div>
                 </div>
@@ -456,7 +575,7 @@
                 <a href="{% url 'upload' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Annuler
                 </a>
-                <button type="submit" class="btn btn-success">
+                <button type="submit" class="btn btn-success" id="submitBtn">
                     <i class="fas fa-paper-plane"></i> Envoyer
                 </button>
             </div>
@@ -469,113 +588,287 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const toEmailsTextarea = document.getElementById('{{ form.to_emails.id_for_label }}');
-    const recipientCountSpan = document.getElementById('recipientCount');
+    // ===== RÉFÉRENCES =====
+    const toTextarea = document.getElementById('{{ form.to_emails.id_for_label }}');
+    const ccTextarea = document.getElementById('{{ form.cc_emails.id_for_label }}');
     const emailForm = document.getElementById('emailForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    // Compteurs
+    const toCountSpan = document.getElementById('toCount');
+    const ccCountSpan = document.getElementById('ccCount');
+    const totalCountSpan = document.getElementById('totalRecipientCount');
     
     // Destinataires par défaut
     const defaultRecipients = {{ default_recipients|safe|default:'[]' }};
+    const defaultCC = {{ default_cc|safe|default:'[]' }};
     
-    // Mettre à jour le compteur
-    function updateRecipientCount() {
-        if (toEmailsTextarea) {
-            const emails = toEmailsTextarea.value.split('\n')
-                .map(email => email.trim())
-                .filter(email => email !== '');
-            const count = emails.length;
-            if (recipientCountSpan) {
-                recipientCountSpan.textContent = count || '0';
-                if (count === 0) {
-                    recipientCountSpan.className = 'badge bg-danger text-white ms-2';
-                } else if (count <= 3) {
-                    recipientCountSpan.className = 'badge bg-warning text-dark ms-2';
-                } else {
-                    recipientCountSpan.className = 'badge bg-success text-white ms-2';
-                }
+    // ===== FONCTIONS =====
+    function getEmails(textarea) {
+        if (!textarea) return [];
+        return textarea.value.split('\n')
+            .map(email => email.trim())
+            .filter(email => email !== '');
+    }
+    
+    function updateCount(textarea, countSpan) {
+        if (textarea && countSpan) {
+            const emails = getEmails(textarea);
+            countSpan.textContent = emails.length;
+        }
+    }
+    
+    function updateAllCounts() {
+        updateCount(toTextarea, toCountSpan);
+        updateCount(ccTextarea, ccCountSpan);
+        
+        if (totalCountSpan) {
+            const total = getEmails(toTextarea).length + getEmails(ccTextarea).length;
+            totalCountSpan.textContent = total;
+            
+            // Changer la couleur selon le nombre total
+            if (total === 0) {
+                totalCountSpan.className = 'badge bg-danger text-white ms-2';
+            } else if (total <= 5) {
+                totalCountSpan.className = 'badge bg-warning text-dark ms-2';
+            } else {
+                totalCountSpan.className = 'badge bg-success text-white ms-2';
             }
         }
     }
     
-    // Initialisation
-    if (toEmailsTextarea) {
-        if (toEmailsTextarea.value.trim() === '') {
-            toEmailsTextarea.value = defaultRecipients.join('\n');
+    function addEmail(textarea, defaultEmail) {
+        if (!textarea) return;
+        const emails = getEmails(textarea);
+        const newEmail = prompt('✏️ Entrez l\'adresse email à ajouter :', defaultEmail || '');
+        if (newEmail && newEmail.trim()) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (emailRegex.test(newEmail.trim())) {
+                emails.push(newEmail.trim());
+                textarea.value = emails.join('\n');
+                updateAllCounts();
+                // Déclencher l'événement input pour les validations
+                textarea.dispatchEvent(new Event('input'));
+            } else {
+                alert('❌ Adresse email invalide. Veuillez entrer une adresse valide (ex: nom@domaine.com).');
+            }
         }
-        updateRecipientCount();
-        toEmailsTextarea.addEventListener('input', updateRecipientCount);
     }
     
-    // Ajouter
-    document.getElementById('addRecipientBtn')?.addEventListener('click', function() {
-        const lines = toEmailsTextarea.value.split('\n').filter(line => line.trim() !== '');
-        lines.push('nouveau@exemple.com');
-        toEmailsTextarea.value = lines.join('\n');
-        updateRecipientCount();
-        toEmailsTextarea.focus();
-    });
-    
-    // Supprimer
-    document.getElementById('removeLastRecipientBtn')?.addEventListener('click', function() {
-        const lines = toEmailsTextarea.value.split('\n').filter(line => line.trim() !== '');
-        if (lines.length > 0) {
-            lines.pop();
-            toEmailsTextarea.value = lines.join('\n');
-            updateRecipientCount();
-            toEmailsTextarea.focus();
+    function removeLastEmail(textarea) {
+        if (!textarea) return;
+        const emails = getEmails(textarea);
+        if (emails.length > 0) {
+            const removed = emails.pop();
+            textarea.value = emails.join('\n');
+            updateAllCounts();
+            textarea.dispatchEvent(new Event('input'));
+            console.log('🗑️ Email supprimé :', removed);
+        } else {
+            alert('⚠️ Aucun email à supprimer dans cette section.');
         }
-    });
+    }
     
-    // Effacer
-    document.getElementById('clearRecipientsBtn')?.addEventListener('click', function() {
-        if (confirm('⚠️ Effacer tous les destinataires ?')) {
-            toEmailsTextarea.value = '';
-            updateRecipientCount();
-            toEmailsTextarea.focus();
-        }
-    });
-    
-    // Rétablir
-    document.getElementById('resetDefaultRecipientsBtn')?.addEventListener('click', function() {
-        if (confirm('🔄 Rétablir les destinataires par défaut ?')) {
-            toEmailsTextarea.value = defaultRecipients.join('\n');
-            updateRecipientCount();
-            toEmailsTextarea.focus();
-        }
-    });
-    
-    // Validation avant soumission
-    emailForm?.addEventListener('submit', function(e) {
-        const emails = toEmailsTextarea.value.split('\n')
-            .map(email => email.trim())
-            .filter(email => email !== '');
-        
+    function clearEmails(textarea, sectionName) {
+        if (!textarea) return;
+        const emails = getEmails(textarea);
         if (emails.length === 0) {
+            alert('⚠️ Aucun email à effacer dans cette section.');
+            return;
+        }
+        if (confirm(`⚠️ Effacer tous les emails de la section ${sectionName} ?`)) {
+            textarea.value = '';
+            updateAllCounts();
+            textarea.dispatchEvent(new Event('input'));
+        }
+    }
+    
+    function resetEmails(textarea, defaults, sectionName) {
+        if (!textarea) return;
+        if (confirm(`🔄 Rétablir les emails par défaut de la section ${sectionName} ?`)) {
+            if (defaults && defaults.length > 0) {
+                textarea.value = defaults.join('\n');
+            } else {
+                textarea.value = '';
+            }
+            updateAllCounts();
+            textarea.dispatchEvent(new Event('input'));
+        }
+    }
+    
+    // ===== INITIALISATION =====
+    function initializeTextarea(textarea, defaults) {
+        if (textarea && textarea.value.trim() === '') {
+            if (defaults && defaults.length > 0) {
+                textarea.value = defaults.join('\n');
+            }
+        }
+    }
+    
+    initializeTextarea(toTextarea, defaultRecipients);
+    initializeTextarea(ccTextarea, defaultCC);
+    
+    updateAllCounts();
+    
+    // Écouter les changements
+    [toTextarea, ccTextarea].forEach(textarea => {
+        if (textarea) {
+            textarea.addEventListener('input', updateAllCounts);
+        }
+    });
+    
+    // ===== BOUTONS TO =====
+    document.getElementById('addToBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        addEmail(toTextarea, 'nouveau@exemple.com');
+    });
+    
+    document.getElementById('removeToBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        removeLastEmail(toTextarea);
+    });
+    
+    document.getElementById('clearToBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        clearEmails(toTextarea, 'TO');
+    });
+    
+    document.getElementById('resetToBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        resetEmails(toTextarea, defaultRecipients, 'TO');
+    });
+    
+    // ===== BOUTONS CC =====
+    document.getElementById('addCcBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        addEmail(ccTextarea, 'nouveau_cc@exemple.com');
+    });
+    
+    document.getElementById('removeCcBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        removeLastEmail(ccTextarea);
+    });
+    
+    document.getElementById('clearCcBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        clearEmails(ccTextarea, 'CC');
+    });
+    
+    document.getElementById('resetCcBtn')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        resetEmails(ccTextarea, defaultCC, 'CC');
+    });
+    
+    // ===== BOUTONS GLOBAUX =====
+    document.getElementById('resetDefaultAll')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (confirm('🔄 Rétablir tous les destinataires par défaut (TO + CC) ?')) {
+            if (toTextarea && defaultRecipients.length > 0) {
+                toTextarea.value = defaultRecipients.join('\n');
+            }
+            if (ccTextarea && defaultCC.length > 0) {
+                ccTextarea.value = defaultCC.join('\n');
+            }
+            updateAllCounts();
+            [toTextarea, ccTextarea].forEach(t => {
+                if (t) t.dispatchEvent(new Event('input'));
+            });
+        }
+    });
+    
+    document.getElementById('clearAllRecipients')?.addEventListener('click', function(e) {
+        e.preventDefault();
+        const total = getEmails(toTextarea).length + getEmails(ccTextarea).length;
+        if (total === 0) {
+            alert('⚠️ Aucun destinataire à effacer.');
+            return;
+        }
+        if (confirm('⚠️ Effacer tous les destinataires (TO et CC) ?')) {
+            if (toTextarea) toTextarea.value = '';
+            if (ccTextarea) ccTextarea.value = '';
+            updateAllCounts();
+            [toTextarea, ccTextarea].forEach(t => {
+                if (t) t.dispatchEvent(new Event('input'));
+            });
+        }
+    });
+    
+    // ===== VALIDATION AVANT SOUMISSION =====
+    emailForm?.addEventListener('submit', function(e) {
+        const toEmails = getEmails(toTextarea);
+        const ccEmails = getEmails(ccTextarea);
+        const allEmails = [...toEmails, ...ccEmails];
+        
+        // Vérifier qu'il y a au moins un destinataire
+        if (allEmails.length === 0) {
             e.preventDefault();
-            alert('❌ Veuillez entrer au moins un destinataire.');
+            alert('❌ Veuillez entrer au moins un destinataire (TO ou CC).');
             return false;
         }
         
+        // Valider chaque email
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const invalidEmails = emails.filter(email => !emailRegex.test(email));
+        const invalidEmails = allEmails.filter(email => !emailRegex.test(email));
         
         if (invalidEmails.length > 0) {
             e.preventDefault();
-            alert('❌ Emails invalides :\n' + invalidEmails.join('\n'));
+            alert('❌ Les adresses suivantes ne sont pas valides :\n\n' + invalidEmails.join('\n'));
             return false;
         }
         
-        if (!confirm(`📧 Envoyer à ${emails.length} destinataire(s) ?`)) {
+        // Message de confirmation détaillé
+        let confirmMsg = '📧 RÉCAPITULATIF DE L\'ENVOI\n';
+        confirmMsg += '='.repeat(40) + '\n\n';
+        
+        if (toEmails.length > 0) {
+            confirmMsg += `📌 TO (${toEmails.length}) :\n`;
+            toEmails.forEach((email, i) => {
+                confirmMsg += `   ${i+1}. ${email}\n`;
+            });
+            confirmMsg += '\n';
+        }
+        
+        if (ccEmails.length > 0) {
+            confirmMsg += `📋 CC (${ccEmails.length}) :\n`;
+            ccEmails.forEach((email, i) => {
+                confirmMsg += `   ${i+1}. ${email}\n`;
+            });
+            confirmMsg += '\n';
+        }
+        
+        confirmMsg += `📁 Fichier : {{ file_name }}\n`;
+        confirmMsg += `👤 Expéditeur : ${document.getElementById('{{ form.from_email.id_for_label }}')?.value || 'Non défini'}\n\n`;
+        confirmMsg += '='.repeat(40) + '\n';
+        confirmMsg += `Total : ${allEmails.length} destinataire(s)`;
+        
+        if (!confirm(confirmMsg)) {
             e.preventDefault();
             return false;
         }
         
         // Indicateur de chargement
-        const submitBtn = document.querySelector('button[type="submit"]');
         if (submitBtn) {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
             submitBtn.disabled = true;
         }
     });
+    
+    // ===== RACCOURCIS CLAVIER =====
+    // Ctrl+Enter pour soumettre le formulaire
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault();
+            if (emailForm) {
+                emailForm.dispatchEvent(new Event('submit'));
+            }
+        }
+    });
+    
+    // ===== LOG DE DEBUG =====
+    console.log('✅ Formulaire d\'envoi d\'email initialisé');
+    console.log('📌 Destinataires TO par défaut :', defaultRecipients);
+    console.log('📋 Destinataires CC par défaut :', defaultCC);
+    console.log('📊 Total destinataires :', getEmails(toTextarea).length + getEmails(ccTextarea).length);
 });
 </script>
 {% endblock %}

@@ -1191,12 +1191,9 @@ def ask_send_email(request, file_id):
 #     }
 #     return render(request, 'send_email_form.html', context)
 
-
-
-
 @login_required
 def send_email_form(request, file_id):
-    """Formulaire d'envoi d'email à plusieurs destinataires"""
+    """Formulaire d'envoi d'email à plusieurs destinataires avec TO et CC"""
     
     # Vérifier les permissions
     user_profile = request.user.userprofile
@@ -1220,16 +1217,33 @@ def send_email_form(request, file_id):
         "yacine.digbeu@bnm.mr",
     ]
     
+    # Filtrer l'expéditeur
+    user_email = request.user.email
+    filtered_recipients = [email for email in default_recipients if email != user_email]
+    
+    if len(filtered_recipients) < len(default_recipients):
+        messages.info(
+            request,
+            f"ℹ️ Votre email ({user_email}) a été automatiquement retiré des destinataires."
+        )
+    
+    default_cc = []
+    
     if request.method == 'POST':
         form = EmailForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
             to_emails = data['to_emails']
+            cc_emails = data['cc_emails']
+            all_recipients = to_emails + cc_emails
             
             try:
-                # Créer le message
+                # Créer le message principal
                 msg = MIMEMultipart()
                 msg['From'] = data['from_email']
+                msg['To'] = ', '.join(to_emails)
+                if cc_emails:
+                    msg['Cc'] = ', '.join(cc_emails)
                 msg['Subject'] = data['subject']
                 msg.attach(MIMEText(data['body'], 'plain'))
                 
@@ -1255,11 +1269,13 @@ def send_email_form(request, file_id):
                 
                 server.login(data['from_email'], data['email_password'])
                 
-                # Envoyer à chaque destinataire
+                # Envoyer à chaque destinataire (TO + CC)
                 success_count = 0
                 failed_emails = []
+                success_details = []
+                failed_details = []
                 
-                for recipient in to_emails:
+                for recipient in all_recipients:
                     try:
                         msg_copy = MIMEMultipart()
                         msg_copy['From'] = data['from_email']
@@ -1280,7 +1296,9 @@ def send_email_form(request, file_id):
                         
                         server.send_message(msg_copy)
                         success_count += 1
+                        success_details.append(recipient)
                         
+                        # 👈 SUPPRIMER recipient_type
                         EmailRecord.objects.create(
                             user=request.user,
                             generated_xml=generated_xml,
@@ -1291,7 +1309,9 @@ def send_email_form(request, file_id):
                             status='sent'
                         )
                     except Exception as e:
-                        failed_emails.append(f"{recipient} ({str(e)})")
+                        error_msg = str(e)
+                        failed_emails.append(recipient)
+                        failed_details.append(f"{recipient} : {error_msg}")
                         EmailRecord.objects.create(
                             user=request.user,
                             generated_xml=generated_xml,
@@ -1300,23 +1320,94 @@ def send_email_form(request, file_id):
                             subject=data['subject'],
                             body=data['body'],
                             status='failed',
-                            error_message=str(e)
+                            error_message=error_msg
                         )
                 
                 server.quit()
                 
-                if success_count > 0:
-                    messages.success(
-                        request,
-                        f"✅ Envoyé à {success_count} destinataire(s) sur {len(to_emails)}"
-                    )
-                if failed_emails:
+                # Messages de confirmation
+                total_recipients = len(all_recipients)
+                failed_count = len(failed_emails)
+                to_count = len(to_emails)
+                cc_count = len(cc_emails)
+                
+                if success_count == total_recipients:
+                    messages.success(request, f"Email envoyé avec succès à {success_count} destinataire(s)")
+                elif success_count > 0 and failed_count > 0:
                     messages.warning(
                         request,
-                        f"⚠️ Échec pour :\n" + "\n".join(failed_emails)
+                        f"""
+                        ⚠️ <strong>ENVOI PARTIEL</strong><br>
+                        <hr style="margin: 8px 0; border-color: #ffc107;">
+                        ✅ <strong>{success_count}</strong> email(s) envoyé(s) avec succès<br>
+                        ❌ <strong>{failed_count}</strong> échec(s) sur {total_recipients} destinataire(s)<br>
+                        📁 Fichier : <strong>{generated_xml.file_name}</strong><br>
+                        <br>
+                        <strong>✅ ENVOYÉS À :</strong><br>
+                        {chr(10).join(['  • ' + email for email in success_details])}
+                        <br>
+                        <strong>❌ ÉCHECS :</strong><br>
+                        {chr(10).join(['  • ' + detail for detail in failed_details])}
+                        <hr style="margin: 8px 0; border-color: #ffc107;">
+                        💡 <strong>Suggestions :</strong><br>
+                        • Vérifiez les adresses email des destinataires en échec<br>
+                        • Vérifiez votre connexion internet<br>
+                        • Réessayez d'envoyer aux destinataires en échec
+                        """
+                    )
+                else:
+                    messages.error(
+                        request,
+                        f"""
+                        ❌ <strong>ÉCHEC TOTAL</strong><br>
+                        <hr style="margin: 8px 0; border-color: #dc3545;">
+                        Aucun email n'a pu être envoyé.<br>
+                        📁 Fichier : <strong>{generated_xml.file_name}</strong><br>
+                        👤 Expéditeur : <strong>{data['from_email']}</strong><br>
+                        📋 Total destinataires : <strong>{total_recipients}</strong><br>
+                        <br>
+                        <strong>❌ DESTINATAIRES EN ÉCHEC :</strong><br>
+                        {chr(10).join(['  • ' + detail for detail in failed_details])}
+                        <hr style="margin: 8px 0; border-color: #dc3545;">
+                        💡 <strong>VÉRIFIEZ :</strong><br>
+                        • Vos identifiants SMTP (email et mot de passe)<br>
+                        • Votre connexion internet<br>
+                        • Le serveur SMTP : <strong>{data['smtp_host']}</strong><br>
+                        • Le port SMTP : <strong>{data['smtp_port']}</strong><br>
+                        • Que les adresses emails sont valides
+                        """
                     )
                 
                 return render(request, 'upload.html')
+                
+            except smtplib.SMTPAuthenticationError:
+                messages.error(
+                    request,
+                    f"""
+                    ❌ <strong>ERREUR D'AUTHENTIFICATION SMTP</strong><br>
+                    <hr style="margin: 8px 0; border-color: #dc3545;">
+                    Impossible de se connecter au serveur SMTP.<br>
+                    <br>
+                    <strong>🔍 INFORMATIONS :</strong><br>
+                    • Email : <strong>{data.get('from_email', 'Non défini')}</strong><br>
+                    • Serveur SMTP : <strong>{data.get('smtp_host', 'Non défini')}</strong><br>
+                    • Port SMTP : <strong>{data.get('smtp_port', 'Non défini')}</strong><br>
+                    <br>
+                    💡 <strong>SOLUTIONS :</strong><br>
+                    • Vérifiez votre mot de passe (ou mot de passe d'application)<br>
+                    • Vérifiez que le serveur SMTP est correct<br>
+                    • Pour Gmail : utilisez un mot de passe d'application
+                    """
+                )
+                context = {
+                    'form': form,
+                    'file_id': file_id,
+                    'file_name': generated_xml.file_name,
+                    'is_admin': is_admin,
+                    'default_recipients': filtered_recipients,
+                    'default_cc': default_cc,
+                }
+                return render(request, 'send_email_form.html', context)
                 
             except Exception as e:
                 messages.error(request, f"❌ Erreur : {str(e)}")
@@ -1325,24 +1416,43 @@ def send_email_form(request, file_id):
                     'file_id': file_id,
                     'file_name': generated_xml.file_name,
                     'is_admin': is_admin,
-                    'default_recipients': default_recipients,
+                    'default_recipients': filtered_recipients,
+                    'default_cc': default_cc,
                 }
                 return render(request, 'send_email_form.html', context)
         else:
-            messages.error(request, "❌ Veuillez corriger les erreurs.")
+            error_messages = []
+            for field, errors in form.errors.items():
+                field_label = form.fields[field].label if field in form.fields else field
+                error_messages.append(f"• {field_label} : {', '.join(errors)}")
+            
+            messages.error(
+                request,
+                f"""
+                ❌ <strong>ERREURS DU FORMULAIRE</strong><br>
+                <hr style="margin: 8px 0; border-color: #dc3545;">
+                Veuillez corriger les erreurs suivantes :<br>
+                <br>
+                {chr(10).join(error_messages)}
+                """
+            )
+            
             context = {
                 'form': form,
                 'file_id': file_id,
                 'file_name': generated_xml.file_name,
                 'is_admin': is_admin,
-                'default_recipients': default_recipients,
+                'default_recipients': filtered_recipients,
+                'default_cc': default_cc,
             }
             return render(request, 'send_email_form.html', context)
     else:
-        # GET - Pré-remplir le formulaire
+        to_emails_default = '\n'.join(filtered_recipients)
+        
         initial_data = {
-            'from_email': request.user.email,
-            'to_emails': '\n'.join(default_recipients),
+            'from_email': user_email,
+            'to_emails': to_emails_default,
+            'cc_emails': '',
             'subject': f"Fichier XML - {generated_xml.file_name}",
             'body': f"Bonjour,\n\nVeuillez trouver ci-joint le fichier XML généré.\n\nCordialement,\n{request.user.get_full_name() or request.user.username}",
             'smtp_host': '192.168.1.91',
@@ -1360,10 +1470,10 @@ def send_email_form(request, file_id):
         'file_name': generated_xml.file_name,
         'is_admin': is_admin,
         'file_owner': generated_xml.user if is_admin else None,
-        'default_recipients': default_recipients,
+        'default_recipients': filtered_recipients,
+        'default_cc': default_cc,
     }
     return render(request, 'send_email_form.html', context)
-
 
 @login_required
 def skip_send_email(request, file_id):

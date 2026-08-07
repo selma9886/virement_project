@@ -19,6 +19,7 @@ class GeneratedXML(models.Model):
 
 # Nouveau modèle pour les emails
 class EmailRecord(models.Model):
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     generated_xml = models.ForeignKey(GeneratedXML, on_delete=models.CASCADE, null=True, blank=True)
     from_email = models.EmailField()
