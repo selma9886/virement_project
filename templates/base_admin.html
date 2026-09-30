@@ -63,6 +63,11 @@
                 <i class="fas fa-history"></i>
                 <span>Historique emails</span>
             </a>
+
+            <a href="{% url 'verify_xml' %}" class="nav-item" data-tab="">
+                <i class="fas fa-check-double"></i>
+                <span>Vérifier XML</span>
+            </a>
             
         {% elif user.userprofile.role == 'comptable' %}
         
@@ -72,6 +77,17 @@
                 <span>les fichiers</span>
               
             </a>
+
+
+
+    {% elif user.userprofile.role == 'user_xml_verifier' %}    {# 👈 AJOUT #}
+    <!-- ===== MENUS VÉRIFICATEUR XML ===== -->
+    <a href="{% url 'verify_xml' %}" class="nav-item">
+        <i class="fas fa-check-double"></i>
+        <span>Vérifier XML</span>
+    </a>
+
+   
             
         {% else %}
             <!-- Menus pour utilisateur normal -->
@@ -83,6 +99,11 @@
             <a href="{% url 'my_generated_files' %}" class="nav-item" data-tab="">
                 <i class="fas fa-file-alt"></i>
                 <span>Mes fichiers</span>
+            </a>
+
+            <a href="{% url 'user_email' %}" class="nav-item" data-tab="">
+                <i class="fas fa-envelope-open-text"></i>
+                <span>Mes emails</span>
             </a>
             
             {% if user.userprofile.can_view_files %}

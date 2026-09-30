@@ -32,6 +32,7 @@ urlpatterns = [
     path('skip-send-email/<int:file_id>/', views.skip_send_email, name='skip_send_email'),
     path('serve-file/<str:filename>/', views.serve_file, name='serve_file'),
     path('email-history/', views.email_history, name='email_history'),
+    path("my-emails/", views.user_email, name="user_email"),
     path('serve-file/<str:filename>/', views.serve_file, name='serve_file'), 
     path('download/<str:filename>/', views.download_file, name='download_file'),
     path('delete-file/<int:id>/', views.delete_generated_file, name='delete_file'),
@@ -49,6 +50,10 @@ urlpatterns = [
     path('api/get-users/', views.get_users_list, name='get_users_list'),
     # path('api/revoke-comptable-access/<int:user_id>/', views.revoke_comptable_access, name='revoke_comptable_access'),
     # path('api/add-users-to-comptable/<int:comptable_id>/', views.add_users_to_comptable, name='add_users_to_comptable'),
+
+    path("verify-xml/", views.verify_xml, name="verify_xml"),
+    path("verify-xml/upload/", views.upload_xml_for_check, name="upload_xml_for_check"),
+    path("verify-xml/apply/", views.apply_xml_corrections, name="apply_xml_corrections"),
 
 
     

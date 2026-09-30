@@ -46,6 +46,7 @@ class UserProfile(models.Model):
         ('admin', 'Administrateur'),
         ('comptable', 'Comptable'),
         ('user', 'Utilisateur'),
+        ('user_xml_verifier', 'Vérificateur XML'),  
     ]
     
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='userprofile')
@@ -56,7 +57,7 @@ class UserProfile(models.Model):
     
     # Nouveaux champs
     role = models.CharField(
-        max_length=20,
+        max_length=40,
         choices=ROLE_CHOICES,
         default='user',
         verbose_name="Rôle"
@@ -88,6 +89,7 @@ class UserProfile(models.Model):
     class Meta:
         verbose_name = "Profil utilisateur"
         verbose_name_plural = "Profils utilisateurs"
+
 
 
 from django.db.models.signals import post_save

@@ -210,25 +210,23 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         
         if user:
-            # Superusers passent toujours
             if user.is_superuser or (hasattr(user, "userprofile") and user.userprofile.is_valid):
                 login(request, user)
-                messages.success(request, "Connexion réussie!")
                 
-                # Redirection selon le rôle
                 if hasattr(user, 'userprofile'):
                     role = user.userprofile.role
                     
                     if role == 'admin':
-                        return redirect("admin_dashboard")  # Page admin
+                        return redirect("admin_dashboard")
                     elif role == 'comptable':
-                        return redirect("generated-files")  # Page comptable
+                        return redirect("generated-files")
+                    elif role == 'user_xml_verifier':            # 👈 AJOUT
+                        return redirect("verify_xml")            # 👈 Rediriger vers Vérifier XML
                     elif role == 'user':
-                        return redirect("index")  # Page utilisateur
+                        return redirect("index")
                     else:
-                        return redirect("admin_dashboard")  # Fallback
+                        return redirect("admin_dashboard")
                 else:
-                    # Si pas de profil, rediriger vers admin par défaut
                     return redirect("admin_dashboard")
             
             messages.error(request, "❌ Votre compte n'est pas encore validé.")
@@ -237,10 +235,6 @@ def login_view(request):
         messages.error(request, "Email ou mot de passe incorrect")
     
     return render(request, "login.html")
-
-
-
-
 
 def register(request):
     if request.method == "POST":
@@ -259,8 +253,12 @@ def register(request):
             messages.error(request, "Cet email est déjà utilisé")
             return render(request, "register.html")
         
+        # ⚠️ Sécurité : valider que le rôle est autorisé
+        allowed_roles = ["user", "user_xml_verifier"]   # 👈 Rôles accessibles par inscription
+        if role not in allowed_roles:
+            role = "user"
+        
         try:
-            # Créer l'utilisateur
             user = User.objects.create_user(
                 username=email,
                 email=email,
@@ -268,7 +266,6 @@ def register(request):
                 first_name=fullname
             )
             
-            # Utiliser get_or_create pour éviter les doublons
             profile, created = UserProfile.objects.get_or_create(
                 user=user,
                 defaults={
@@ -279,7 +276,6 @@ def register(request):
                 }
             )
             
-            # Si le profil existait déjà, le mettre à jour
             if not created:
                 profile.is_valid = False
                 profile.can_view_files = False
@@ -719,13 +715,55 @@ def generate_xml(request, apply_corrections=False):
     # Rediriger vers la page de téléchargement qui affichera la modale email
     return redirect("download_file", filename=out_filename)
 
+# @login_required
+# def download_file(request, filename):
+#     """Télécharge le fichier généré et propose l'envoi par email"""
+#     file_path = os.path.join(settings.MEDIA_ROOT, "outputs", filename)
+    
+#     if not os.path.exists(file_path):
+#         messages.error(request, "Le fichier n'existe pas.")
+#         return redirect("index")
+    
+#     # Récupérer l'ID du fichier
+#     try:
+#         generated_xml = GeneratedXML.objects.get(file_name=filename, user=request.user)
+#         file_id = generated_xml.id
+#     except GeneratedXML.DoesNotExist:
+#         file_id = request.session.get("last_generated_xml_id")
+    
+#     # Page avec modale
+#     context = {
+#         'filename': filename,
+#         'show_email_modal': True,
+#         'file_id': file_id
+#     }
+    
+#     response = render(request, 'download_page.html', context)
+    
+#     return response
+
 @login_required
 def download_file(request, filename):
-    """Télécharge le fichier généré et propose l'envoi par email"""
-    file_path = os.path.join(settings.MEDIA_ROOT, "outputs", filename)
+    """Télécharge le fichier généré et propose l'envoi par email.
     
-    if not os.path.exists(file_path):
-        messages.error(request, "Le fichier n'existe pas.")
+    Cherche le fichier dans :
+      - MEDIA_ROOT/outputs/           (fichiers générés)
+      - MEDIA_ROOT/outputs_verifier/  (fichiers vérifiés/corrigés)
+    """
+    # Chercher le fichier dans les 2 dossiers possibles
+    possible_paths = [
+        os.path.join(settings.MEDIA_ROOT, "outputs", filename),
+        os.path.join(settings.MEDIA_ROOT, "outputs_verifier", filename),
+    ]
+    
+    file_path = None
+    for p in possible_paths:
+        if os.path.exists(p):
+            file_path = p
+            break
+    
+    if not file_path:
+        messages.error(request, f"Le fichier {filename} n'existe pas.")
         return redirect("index")
     
     # Récupérer l'ID du fichier
@@ -743,22 +781,38 @@ def download_file(request, filename):
     }
     
     response = render(request, 'download_page.html', context)
-    # Téléchargement automatique après 2 secondes - UTILISE reverse CORRECTEMENT
-    response['Refresh'] = f"2;url={reverse('serve_file', args=[filename])}"
+   
     
     return response
 
+
+
 @login_required
 def serve_file(request, filename):
-    """Sert le fichier pour téléchargement"""
-    file_path = os.path.join(settings.MEDIA_ROOT, "outputs", filename)
-    if os.path.exists(file_path):
-        with open(file_path, 'rb') as fh:
-            response = HttpResponse(fh.read(), content_type="application/xml")
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
-            return response
-    return HttpResponseNotFound("Fichier non trouvé")
-
+    """Sert le fichier pour téléchargement.
+    
+    Cherche le fichier dans :
+      - MEDIA_ROOT/outputs/           (fichiers générés)
+      - MEDIA_ROOT/outputs_verifier/  (fichiers vérifiés/corrigés)
+    """
+    possible_paths = [
+        os.path.join(settings.MEDIA_ROOT, "outputs", filename),
+        os.path.join(settings.MEDIA_ROOT, "outputs_verifier", filename),
+    ]
+    
+    file_path = None
+    for p in possible_paths:
+        if os.path.exists(p):
+            file_path = p
+            break
+    
+    if not file_path:
+        return HttpResponseNotFound(f"Fichier '{filename}' non trouvé")
+    
+    with open(file_path, 'rb') as fh:
+        response = HttpResponse(fh.read(), content_type="application/xml")
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
 @login_required
 def download_template(request):
     """Télécharge le template Excel."""
@@ -875,80 +929,7 @@ def generated_files(request):
     
     return render(request, "generated_files.html", context)
 
-# @login_required
-# def generated_files(request):
-#     """
-#     Affiche les fichiers générés selon le rôle et les permissions
-#     - Si can_view_files = True: Affiche tous les fichiers (ou fichiers spécifiques)
-#     - Si can_view_files = False: Affiche uniquement ses propres fichiers
-#     """
-#     user = request.user
-#     try:
-#         user_profile = user.userprofile
-#         # Rafraîchir depuis la base pour éviter le cache
-#         user_profile.refresh_from_db()
-#     except UserProfile.DoesNotExist:
-#         # Si le profil n'existe pas, le créer
-#         user_profile = UserProfile.objects.create(
-#             user=user,
-#             fullname=user.get_full_name() or user.email,
-#             role='user',
-#             can_view_files=False,
-#             can_view_all_files=False,
-#             can_manage_users=False,
-#             is_valid=True
-#         )
-    
-#     # Récupérer tous les fichiers avec les relations nécessaires
-#     all_files = GeneratedXML.objects.select_related('user').order_by('-created_at')
-    
-#     # Vérification de can_view_files
-#     if user_profile.can_view_files:
-#         # 🔓 can_view_files = True: Afficher TOUS les fichiers (ou un autre ensemble)
-#         files = all_files  # Affiche tous les fichiers de tous les utilisateurs
-#         logger.info(f"Utilisateur {user.email} - can_view_files=True: Accès à tous les fichiers ({files.count()})")
-#     else:
-#         # 🔒 can_view_files = False: Garder le comportement normal selon le rôle
-#         if user.is_superuser or user_profile.role == 'admin':
-#             # Admin voit tous les fichiers
-#             files = all_files
-            
-#         elif user_profile.role == 'comptable':
-#             if user_profile.can_view_all_files:
-#                 # Comptable avec accès à tous les fichiers
-#                 files = all_files
-#                 logger.info(f"Comptable {user.email} - Accès à tous les fichiers")
-#             else:
-#                 allowed_user_ids = list(user_profile.can_view_users.values_list('id', flat=True))
-#                 # Inclure ses propres fichiers
-#                 if user.id not in allowed_user_ids:
-#                     allowed_user_ids.append(user.id)
-                
-#                 files = all_files.filter(user_id__in=allowed_user_ids)
-                
-#                 logger.info(f"Comptable {user.email} - Accès limité à {len(allowed_user_ids)} utilisateurs")
-#                 logger.info(f"IDs autorisés: {allowed_user_ids}")
-#                 logger.info(f"Nombre de fichiers trouvés: {files.count()}")
-                
-#         elif user_profile.role == 'user':
-#             # Utilisateur normal voit ses propres fichiers
-#             files = all_files.filter(user=user)
-#             logger.info(f"Utilisateur normal {user.email} - {files.count()} fichiers")
-            
-#         else:
-#             files = []
-    
-#     # Récupérer tous les utilisateurs pour l'affichage (sauf l'utilisateur courant)
-#     all_users = User.objects.exclude(id=user.id).select_related('userprofile')
-    
-#     context = {
-#         'files': files,
-#         'active_tab': 'files',
-#         'users': all_users,
-#         'can_view_files': user_profile.can_view_files,  # Passer au template
-#     }
-    
-#     return render(request, "generated_files.html", context)
+
 
 def is_admin(user):
     return user.is_superuser
@@ -1103,93 +1084,7 @@ def ask_send_email(request, file_id):
     }
     return render(request, 'ask_send_email.html', context)
 
-# @login_required
-# def send_email_form(request, file_id):
-#     """Deuxième modale : Formulaire d'envoi d'email"""
-#     generated_xml = get_object_or_404(GeneratedXML, id=file_id, user=request.user)
-    
-#     if request.method == 'POST':
-#         form = EmailForm(request.POST)
-#         if form.is_valid():
-#             # Récupérer les données du formulaire
-#             data = form.cleaned_data
-            
-#             try:
-#                 # Créer le message
-#                 msg = MIMEMultipart()
-#                 msg['From'] = data['from_email']
-#                 msg['To'] = data['to_email']
-#                 msg['Subject'] = data['subject']
-#                 msg.attach(MIMEText(data['body'], 'plain'))
-                
-#                 # Ajouter la pièce jointe (fichier XML)
-#                 with open(generated_xml.file_path, "rb") as attachment:
-#                     part = MIMEBase("application", "octet-stream")
-#                     part.set_payload(attachment.read())
-                
-#                 encoders.encode_base64(part)
-#                 part.add_header(
-#                     "Content-Disposition",
-#                     f"attachment; filename={generated_xml.file_name}",
-#                 )
-#                 msg.attach(part)
-                
-#                 # Connexion au serveur SMTP
-#                 if data['smtp_port'] == 587:
-#                     server = smtplib.SMTP(data['smtp_host'], data['smtp_port'])
-#                     server.starttls()
-#                 else:
-#                     server = smtplib.SMTP_SSL(data['smtp_host'], data['smtp_port'])
-                
-#                 # Authentification et envoi
-#                 server.login(data['from_email'], data['email_password'])
-#                 server.send_message(msg)
-#                 server.quit()
-                
-#                 # Enregistrer le succès
-#                 EmailRecord.objects.create(
-#                     user=request.user,
-#                     generated_xml=generated_xml,
-#                     from_email=data['from_email'],
-#                     to_email=data['to_email'],
-#                     subject=data['subject'],
-#                     body=data['body'],
-#                     status='sent'
-#                 )
-                
-#                 messages.success(request, f"✅ Email envoyé avec succès à {data['to_email']}")
-                
-#             except Exception as e:
-#                 # Enregistrer l'échec
-#                 EmailRecord.objects.create(
-#                     user=request.user,
-#                     generated_xml=generated_xml,
-#                     from_email=data.get('from_email', ''),
-#                     to_email=data.get('to_email', ''),
-#                     subject=data.get('subject', ''),
-#                     body=data.get('body', ''),
-#                     status='failed',
-#                     error_message=str(e)
-#                 )
-                
-#                 messages.error(request, f"❌ Erreur lors de l'envoi : {str(e)}")
-            
-#             return redirect('download_file', filename=generated_xml.file_name)
-#     else:
-#         # Formulaire initial avec l'email de l'utilisateur
-#         initial_data = {
-#             'from_email': request.user.email,
-#             'subject': f"Fichier XML de virement - {generated_xml.file_name}",
-#             'body': f"Bonjour,\n\nVeuillez trouver ci-joint le fichier XML de virement généré le {generated_xml.created_at.strftime('%d/%m/%Y à %H:%M')}.\n\nCordialement,"
-#         }
-#         form = EmailForm(initial=initial_data)
-    
-#     context = {
-#         'form': form,
-#         'file_id': file_id,
-#         'file_name': generated_xml.file_name
-#     }
-#     return render(request, 'send_email_form.html', context)
+
 
 @login_required
 def send_email_form(request, file_id):
@@ -1401,11 +1296,20 @@ def skip_send_email(request, file_id):
     messages.info(request, "Envoi par email ignoré. Vous pouvez télécharger le fichier.")
     return redirect('download_file', filename=generated_xml.file_name)
 
+
 @login_required
 def email_history(request):
-    """Historique des emails envoyés"""
-    emails = EmailRecord.objects.filter(user=request.user).order_by('-sent_at')
+    """Historique de TOUS les emails envoyés"""
+    emails = EmailRecord.objects.all().order_by('-sent_at')
     return render(request, 'email_history.html', {'emails': emails})
+
+
+@login_required
+def user_email(request):
+    """Historique des emails envoyés par l'utilisateur connecté."""
+    emails = EmailRecord.objects.filter(user=request.user).order_by("-sent_at")
+    return render(request, "user_email.html", {"emails": emails}) 
+
 
 @login_required
 def delete_generated_file(request, id):
@@ -1897,3 +1801,593 @@ def get_users_list(request):
         'success': False,
         'error': 'Méthode non autorisée'
     }, status=405)
+
+
+
+
+
+# ============================================================
+# VÉRIFICATION DE FICHIER XML (détection + correction manuelle)
+# ============================================================
+
+from lxml import etree
+from datetime import datetime as dt
+
+NS = {"ns": "urn:iso:std:iso:20022:tech:xsd:pacs.008.001.07"}
+
+# Liste triée des BIC valides (pour les <select>)
+VALID_BICS = sorted(set(BIC_MAP.values()))
+
+# Liste triée des banques pour les listes déroulantes
+BANK_CHOICES = sorted(
+    [{"code": code, "bic": bic} for code, bic in BIC_MAP.items()],
+    key=lambda x: x["bic"]
+)
+
+
+def _validate_bic(bic):
+    """Vérifie si un BIC est valide (présent dans BIC_MAP)."""
+    if not bic:
+        return False, "BIC manquant"
+    bic = bic.strip().upper()
+    if len(bic) not in (8, 11):
+        return False, f"Longueur invalide ({len(bic)} caractères, attendu 8 ou 11)"
+    bic8 = bic[:8]
+    if bic8 not in VALID_BICS:
+        return False, f"BIC inconnu : {bic8}"
+    return True, "OK"
+
+
+def _validate_rib(rib):
+    """Vérifie la structure et la clé d'un RIB mauritanien (23 chiffres)."""
+    if not rib or len(str(rib)) != 23 or not str(rib).isdigit():
+        return False, "RIB invalide (23 chiffres attendus)"
+    expected = compute_cle_rib(rib)
+    if expected is None:
+        return False, "Impossible de calculer la clé RIB"
+    actual = str(rib)[-2:]
+    if actual != expected:
+        return False, f"Clé RIB incorrecte : {actual} (attendu {expected})"
+    return True, "OK"
+
+
+@login_required
+def verify_xml(request):
+    """Page d'upload d'un fichier XML à vérifier."""
+    return render(request, "verify_xml.html")
+
+
+@login_required
+@require_http_methods(["POST"])
+def upload_xml_for_check(request):
+    """
+    Analyse le fichier XML uploadé.
+    - Détecte TOUS les BIC (InstgAgt, DbtrAgt, CdtrAgt par transaction)
+    - Vérifie la date IntrBkSttlmDt
+    - Vérifie les RIB (clé mod 97)
+    - Vérifie la cohérence NbOfTxs / TtlIntrBkSttlmAmt
+    AUCUNE correction automatique — uniquement la détection.
+    """
+    file = request.FILES.get("xml_file")
+    if not file:
+        messages.error(request, "Aucun fichier sélectionné.")
+        return redirect("verify_xml")
+
+    if not file.name.lower().endswith(".xml"):
+        messages.error(request, "Le fichier doit être au format .xml")
+        return redirect("verify_xml")
+
+    # Sauvegarde temporaire
+    upload_dir = os.path.join(settings.MEDIA_ROOT, "xml_to_verify")
+    os.makedirs(upload_dir, exist_ok=True)
+    saved_path = os.path.join(upload_dir, file.name)
+    with open(saved_path, "wb+") as dest:
+        for chunk in file.chunks():
+            dest.write(chunk)
+
+    # Parsing sécurisé
+    try:
+        parser = etree.XMLParser(resolve_entities=False, no_network=True)
+        tree = etree.parse(saved_path, parser)
+        root = tree.getroot()
+    except Exception as e:
+        messages.error(request, f"Fichier XML invalide : {e}")
+        return redirect("verify_xml")
+
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    errors = []
+
+    # ================================================================
+    # 1) DATE DE RÈGLEMENT
+    # ================================================================
+    intrbk_date_el = root.find(".//ns:GrpHdr/ns:IntrBkSttlmDt", NS)
+    intrbk_date = intrbk_date_el.text.strip() if intrbk_date_el is not None and intrbk_date_el.text else None
+
+    if not intrbk_date:
+        errors.append({
+            "id": "date",
+            "type": "date",
+            "severity": "error",
+            "location": "GrpHdr / IntrBkSttlmDt",
+            "message": "Date de règlement manquante.",
+            "current": "",
+            "expected": today,
+        })
+    elif intrbk_date != today:
+        errors.append({
+            "id": "date",
+            "type": "date",
+            "severity": "warning",
+            "location": "GrpHdr / IntrBkSttlmDt",
+            "message": f"La date de règlement ({intrbk_date}) n'est pas la date du jour ({today}).",
+            "current": intrbk_date,
+            "expected": today,
+        })
+
+    # ================================================================
+    # 2) BIC INSTRUCTEUR (GrpHdr)
+    # ================================================================
+    instg_bic_el = root.find(".//ns:GrpHdr/ns:InstgAgt/ns:FinInstnId/ns:BICFI", NS)
+    instg_bic = instg_bic_el.text.strip() if instg_bic_el is not None and instg_bic_el.text else None
+    ok, msg = _validate_bic(instg_bic)
+    if not ok:
+        errors.append({
+            "id": "bic_instg",
+            "type": "bic",
+            "severity": "error",
+            "location": "GrpHdr / InstgAgt / FinInstnId / BICFI",
+            "message": f"BIC instructeur invalide : {msg}",
+            "current": instg_bic or "",
+            "expected": "",
+        })
+
+    # ================================================================
+    # 3) COHÉRENCE NbOfTxs / TtlIntrBkSttlmAmt
+    # ================================================================
+    txs = root.findall(".//ns:CdtTrfTxInf", NS)
+
+    nb_el = root.find(".//ns:GrpHdr/ns:NbOfTxs", NS)
+    nb_declared = None
+    if nb_el is not None and nb_el.text:
+        try:
+            nb_declared = int(nb_el.text.strip())
+        except ValueError:
+            pass
+
+    if nb_declared is not None and nb_declared != len(txs):
+        errors.append({
+            "id": "nb_txs",
+            "type": "coherence",
+            "severity": "warning",
+            "location": "GrpHdr / NbOfTxs",
+            "message": f"NbOfTxs déclaré ({nb_declared}) ≠ nombre réel de transactions ({len(txs)}).",
+            "current": str(nb_declared),
+            "expected": str(len(txs)),
+        })
+
+    # TtlIntrBkSttlmAmt
+    ttl_el = root.find(".//ns:GrpHdr/ns:TtlIntrBkSttlmAmt", NS)
+    ttl_declared = None
+    if ttl_el is not None and ttl_el.text:
+        try:
+            ttl_declared = float(ttl_el.text.strip())
+        except ValueError:
+            pass
+
+    total_computed = 0.0
+    for tx in txs:
+        amt_el = tx.find(".//ns:IntrBkSttlmAmt", NS)
+        if amt_el is not None and amt_el.text:
+            try:
+                total_computed += float(amt_el.text.strip())
+            except ValueError:
+                pass
+
+    if ttl_declared is not None and abs(ttl_declared - total_computed) > 0.01:
+        errors.append({
+            "id": "ttl_amount",
+            "type": "coherence",
+            "severity": "warning",
+            "location": "GrpHdr / TtlIntrBkSttlmAmt",
+            "message": (
+                f"Montant total déclaré ({ttl_declared:,.2f}) "
+                f"≠ somme des transactions ({total_computed:,.2f})."
+            ),
+            "current": f"{ttl_declared:.2f}",
+            "expected": f"{total_computed:.2f}",
+        })
+
+
+
+        # ================================================================
+    
+    
+    # 3-bis) COHÉRENCE ClrSys/Prtry (RTGS vs ACH selon le montant)
+    # ================================================================
+    # Règle :
+    #   TtlIntrBkSttlmAmt >= 300 000  →  Prtry = "RTGS"
+    #   TtlIntrBkSttlmAmt  < 300 000  →  Prtry = "ACH"
+    clr_sys_el = root.find(".//ns:GrpHdr/ns:SttlmInf/ns:ClrSys/ns:Prtry", NS)
+    clr_sys_value = None
+    if clr_sys_el is not None and clr_sys_el.text:
+        clr_sys_value = clr_sys_el.text.strip().upper()
+
+    # On utilise le total RÉEL calculé (total_computed), pas la valeur déclarée
+    # car la valeur déclarée peut être fausse (voir erreur ttl_amount).
+    # → On se base sur la réalité des transactions.
+    expected_clr_sys = "RTGS" if total_computed >= 300000 else "ACH"
+
+    if clr_sys_value is None:
+        errors.append({
+            "id": "clr_sys",
+            "type": "clr_sys",
+            "severity": "error",
+            "location": "GrpHdr / SttlmInf / ClrSys / Prtry",
+            "message": "Système de compensation (ClrSys/Prtry) manquant.",
+            "current": "",
+            "expected": expected_clr_sys,
+        })
+    elif clr_sys_value != expected_clr_sys:
+        errors.append({
+            "id": "clr_sys",
+            "type": "clr_sys",
+            "severity": "error",
+            "location": "GrpHdr / SttlmInf / ClrSys / Prtry",
+            "message": (
+                f"Système de compensation incorrect : {clr_sys_value}. "
+                f"Attendu : {expected_clr_sys} "
+                f"(total = {total_computed:,.2f} MRU)."
+            ),
+            "current": clr_sys_value,
+            "expected": expected_clr_sys,
+        })
+
+
+    # ================================================================
+    # 4) TRANSACTIONS : BIC + RIB
+    # ================================================================
+    for idx, tx in enumerate(txs, start=1):
+        tx_id_el = tx.find(".//ns:PmtId/ns:TxId", NS)
+        tx_id = tx_id_el.text.strip() if tx_id_el is not None and tx_id_el.text else f"TX#{idx}"
+
+        # ----- DbtrAgt BIC -----
+        dbtr_bic_el = tx.find(".//ns:DbtrAgt/ns:FinInstnId/ns:BICFI", NS)
+        dbtr_bic = dbtr_bic_el.text.strip() if dbtr_bic_el is not None and dbtr_bic_el.text else None
+        ok, msg = _validate_bic(dbtr_bic)
+        if not ok:
+            errors.append({
+                "id": f"bic_dbtr_{idx}",
+                "type": "bic",
+                "severity": "error",
+                "location": f"Tx #{idx} ({tx_id}) → DbtrAgt / BICFI",
+                "message": f"BIC débiteur invalide : {msg}",
+                "current": dbtr_bic or "",
+                "expected": "",
+            })
+
+        # ----- CdtrAgt BIC -----
+        cdtr_bic_el = tx.find(".//ns:CdtrAgt/ns:FinInstnId/ns:BICFI", NS)
+        cdtr_bic = cdtr_bic_el.text.strip() if cdtr_bic_el is not None and cdtr_bic_el.text else None
+        ok, msg = _validate_bic(cdtr_bic)
+        if not ok:
+            errors.append({
+                "id": f"bic_cdtr_{idx}",
+                "type": "bic",
+                "severity": "error",
+                "location": f"Tx #{idx} ({tx_id}) → CdtrAgt / BICFI",
+                "message": f"BIC créditeur invalide : {msg}",
+                "current": cdtr_bic or "",
+                "expected": "",
+            })
+
+        # ----- CdtrAcct RIB -----
+        cdtr_acct_el = tx.find(".//ns:CdtrAcct/ns:Id/ns:Othr/ns:Id", NS)
+        cdtr_acct = cdtr_acct_el.text.strip() if cdtr_acct_el is not None and cdtr_acct_el.text else None
+        if cdtr_acct:
+            ok, msg = _validate_rib(cdtr_acct)
+            if not ok:
+                suggested = None
+                if len(cdtr_acct) == 23 and cdtr_acct.isdigit():
+                    suggested = correct_rib(cdtr_acct)
+                errors.append({
+                    "id": f"rib_cdtr_{idx}",
+                    "type": "rib",
+                    "severity": "error",
+                    "location": f"Tx #{idx} ({tx_id}) → CdtrAcct",
+                    "message": f"RIB créditeur : {msg}",
+                    "current": cdtr_acct,
+                    "expected": suggested or "",
+                })
+
+        # ----- DbtrAcct RIB (vérification optionnelle) -----
+        dbtr_acct_el = tx.find(".//ns:DbtrAcct/ns:Id/ns:Othr/ns:Id", NS)
+        dbtr_acct = dbtr_acct_el.text.strip() if dbtr_acct_el is not None and dbtr_acct_el.text else None
+        # Dans ce format, DbtrAcct est un compte interne (11 chiffres) — on ne le vérifie pas comme un RIB 23.
+
+        # ================================================================
+        # DÉTECTION DU RÔLE ET DES ERREURS BLOQUANTES
+        # ================================================================
+        is_admin = (
+            request.user.is_superuser or
+            (hasattr(request.user, "userprofile") and request.user.userprofile.role == "admin")
+        )
+
+        # Types d'erreurs que le USER ne peut PAS corriger → bloquantes
+        BLOCKING_TYPES = ("bic", "rib", "ref_id")
+        
+        # Compter les erreurs critiques (mais ne pas les montrer au user)
+        blocking_errors_count = sum(
+            1 for e in errors if e.get("type") in BLOCKING_TYPES
+        )
+        has_blocking_errors = blocking_errors_count > 0
+
+        # Filtrer les erreurs affichées selon le rôle
+        if is_admin:
+            # Admin : voit TOUT
+            errors_affichage = errors
+        else:
+            # User simple : voit UNIQUEMENT Date + ClrSys + cohérence
+            errors_affichage = [
+                e for e in errors
+                if e.get("type") in ("date", "clr_sys", "coherence")
+            ]
+
+        # Sauvegarder TOUTES les erreurs en session (pour apply_xml_corrections)
+        request.session["xml_to_verify_path"] = saved_path
+        request.session["xml_original_name"] = file.name
+        request.session["xml_errors"] = errors
+        request.session["is_admin"] = is_admin
+
+        return render(request, "verify_xml.html", {
+            "errors": errors_affichage,               # 👈 erreurs filtrées pour l'affichage
+            "filename": file.name,
+            "intrbk_date": intrbk_date,
+            "today": today,
+            "instg_bic": instg_bic,
+            "banks": BANK_CHOICES,
+            "has_errors": len(errors_affichage) > 0,
+            "total_txs": len(txs),
+            "analyzed": True,
+            "is_admin": is_admin,
+            "has_blocking_errors": has_blocking_errors,       # 👈 pour afficher l'alerte
+            "blocking_errors_count": blocking_errors_count,   # 👈 pour afficher le nombre
+        })
+
+
+
+@login_required
+@require_http_methods(["POST"])
+def apply_xml_corrections(request):
+
+    is_admin = (
+        request.user.is_superuser or
+        (hasattr(request.user, "userprofile") and request.user.userprofile.role == "admin")
+    )
+
+    path = request.session.get("xml_to_verify_path")
+    original_name = request.session.get("xml_original_name", "fichier.xml")
+    errors = request.session.get("xml_errors", [])
+
+    if not path or not os.path.exists(path):
+        messages.error(request, "Fichier introuvable. Veuillez recommencer.")
+        return redirect("verify_xml")
+
+    # ============================================================
+    # 🚫 BLOCAGE : User simple ne peut PAS télécharger si erreurs critiques
+    # ============================================================
+    BLOCKING_TYPES = ("bic", "rib", "ref_id")
+    
+    if not is_admin:
+        blocking_errors = [
+            e for e in errors if e.get("type") in BLOCKING_TYPES
+        ]
+        
+        if blocking_errors:
+            nb = len(blocking_errors)
+            message = (
+                f"🚫 <strong>Téléchargement bloqué</strong><br><br>"
+                f"Ce fichier contient <strong>{nb} erreur(s) critique(s)</strong> "
+                f"que seul un administrateur peut corriger.<br><br>"
+                f"<strong>👉 Veuillez contacter l'administrateur</strong> "
+                f"pour corriger ces erreurs avant de télécharger."
+            )
+            messages.error(request, message)
+            return redirect("verify_xml")
+        
+    """Applique les corrections saisies manuellement."""
+    path = request.session.get("xml_to_verify_path")
+    original_name = request.session.get("xml_original_name", "fichier.xml")
+    errors = request.session.get("xml_errors", [])
+
+    if not path or not os.path.exists(path):
+        messages.error(request, "Fichier introuvable. Veuillez recommencer.")
+        return redirect("verify_xml")
+
+    try:
+        parser = etree.XMLParser(resolve_entities=False, no_network=True)
+        tree = etree.parse(path, parser)
+        root = tree.getroot()
+    except Exception as e:
+        messages.error(request, f"Erreur de lecture : {e}")
+        return redirect("verify_xml")
+
+    applied = 0
+    details = []
+
+    # ============================================================
+    # 1) CORRECTION DE LA DATE
+    # ============================================================
+    new_date = request.POST.get("corr_date", "").strip()
+    if new_date:
+        el = root.find(".//ns:GrpHdr/ns:IntrBkSttlmDt", NS)
+        if el is not None:
+            old = el.text
+            el.text = new_date
+            applied += 1
+            details.append(f"📅 Date : {old} → {new_date}")
+
+    # ============================================================
+    # 2) CORRECTION DU BIC INSTRUCTEUR
+    # ============================================================
+    new_bic_instg = request.POST.get("corr_bic_instg", "").strip().upper()
+    if new_bic_instg:
+        el = root.find(".//ns:GrpHdr/ns:InstgAgt/ns:FinInstnId/ns:BICFI", NS)
+        if el is not None:
+            old = el.text
+            el.text = new_bic_instg
+            applied += 1
+            details.append(f"🏦 BIC instructeur : {old} → {new_bic_instg}")
+
+    # ============================================================
+    # 3) CORRECTION NbOfTxs (recalcul auto)
+    # ============================================================
+    txs = root.findall(".//ns:CdtTrfTxInf", NS)
+    nb_el = root.find(".//ns:GrpHdr/ns:NbOfTxs", NS)
+    if nb_el is not None:
+        real_nb = len(txs)
+        old_nb = nb_el.text
+        if old_nb != str(real_nb):
+            nb_el.text = str(real_nb)
+            applied += 1
+            details.append(f"🔢 NbOfTxs : {old_nb} → {real_nb}")
+
+    # ============================================================
+    # 4) CORRECTION TtlIntrBkSttlmAmt (recalcul auto)
+    # ============================================================
+    total = 0.0
+    for tx in txs:
+        amt_el = tx.find(".//ns:IntrBkSttlmAmt", NS)
+        if amt_el is not None and amt_el.text:
+            try:
+                total += float(amt_el.text.strip())
+            except ValueError:
+                pass
+
+    ttl_el = root.find(".//ns:GrpHdr/ns:TtlIntrBkSttlmAmt", NS)
+    if ttl_el is not None:
+        new_val = str(int(total)) if total.is_integer() else f"{total:.2f}"
+        if ttl_el.text != new_val:
+            old_val = ttl_el.text
+            ttl_el.text = new_val
+            applied += 1
+            details.append(f"💰 Montant total : {old_val} → {new_val}")
+
+
+        # ============================================================
+    # 4-bis) CORRECTION ClrSys/Prtry (RTGS vs ACH)
+    # ============================================================
+    new_clr_sys = request.POST.get("corr_clr_sys", "").strip().upper()
+    if new_clr_sys:
+        el = root.find(".//ns:GrpHdr/ns:SttlmInf/ns:ClrSys/ns:Prtry", NS)
+        if el is not None:
+            old = el.text
+            el.text = new_clr_sys
+            applied += 1
+            details.append(f"⚙️ ClrSys/Prtry : {old} → {new_clr_sys}")
+
+            
+    # ============================================================
+    # 5) CORRECTIONS DES TRANSACTIONS (BIC + RIB)
+    # ============================================================
+    # ⚠️ IMPORTANT : itérer sur les erreurs, pas sur les transactions
+    for err in errors:
+        err_id = err.get("id", "")
+
+        # ---------- BIC Débiteur ----------
+        if err_id.startswith("bic_dbtr_"):
+            # Extraire l'index : "bic_dbtr_3" → 3
+            try:
+                idx = int(err_id.replace("bic_dbtr_", ""))
+            except ValueError:
+                continue
+
+            new_bic = request.POST.get(f"corr_{err_id}", "").strip().upper()
+            if not new_bic:
+                continue  # L'utilisateur n'a rien saisi
+
+            if 1 <= idx <= len(txs):
+                tx = txs[idx - 1]
+                el = tx.find(".//ns:DbtrAgt/ns:FinInstnId/ns:BICFI", NS)
+                if el is not None:
+                    old = el.text
+                    el.text = new_bic
+                    applied += 1
+                    details.append(f"🏦 Tx#{idx} BIC débiteur : {old} → {new_bic}")
+
+        # ---------- BIC Créditeur ----------
+        elif err_id.startswith("bic_cdtr_"):
+            try:
+                idx = int(err_id.replace("bic_cdtr_", ""))
+            except ValueError:
+                continue
+
+            new_bic = request.POST.get(f"corr_{err_id}", "").strip().upper()
+            if not new_bic:
+                continue
+
+            if 1 <= idx <= len(txs):
+                tx = txs[idx - 1]
+                el = tx.find(".//ns:CdtrAgt/ns:FinInstnId/ns:BICFI", NS)
+                if el is not None:
+                    old = el.text
+                    el.text = new_bic
+                    applied += 1
+                    details.append(f"🏦 Tx#{idx} BIC créditeur : {old} → {new_bic}")
+
+        # ---------- RIB Créditeur ----------
+        elif err_id.startswith("rib_cdtr_"):
+            try:
+                idx = int(err_id.replace("rib_cdtr_", ""))
+            except ValueError:
+                continue
+
+            new_rib = request.POST.get(f"corr_{err_id}", "").strip()
+            if not new_rib:
+                continue
+            if len(new_rib) != 23 or not new_rib.isdigit():
+                details.append(f"⚠️ Tx#{idx} RIB ignoré (doit faire 23 chiffres)")
+                continue
+
+            if 1 <= idx <= len(txs):
+                tx = txs[idx - 1]
+                el = tx.find(".//ns:CdtrAcct/ns:Id/ns:Othr/ns:Id", NS)
+                if el is not None:
+                    old = el.text
+                    el.text = new_rib
+                    applied += 1
+                    details.append(f"💳 Tx#{idx} RIB créditeur : {old} → {new_rib}")
+
+    # ============================================================
+    # 6) SAUVEGARDE DU FICHIER CORRIGÉ
+    # ============================================================
+    out_dir = os.path.join(settings.MEDIA_ROOT, "outputs_verifier")
+    os.makedirs(out_dir, exist_ok=True)
+    base, ext = os.path.splitext(original_name)
+    out_name = f"{base}_corrige_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}{ext}"
+    out_path = os.path.join(out_dir, out_name)
+
+    tree.write(out_path, xml_declaration=True, encoding="UTF-8", pretty_print=True)
+
+    # Enregistrement en base
+    try:
+        GeneratedXML.objects.create(
+            user=request.user,
+            file_name=out_name,
+            file_path=out_path,
+            purpose_code="VERIF",
+            total_amount=total,
+            transaction_count=len(txs),
+        )
+    except Exception:
+        pass
+
+    if applied == 0:
+        messages.warning(request, "⚠️ Aucune correction n'a été saisie.")
+        return redirect("verify_xml")
+
+
+    request.session.pop("xml_errors", None)
+
+    return redirect("download_file", filename=out_name)
+
+
